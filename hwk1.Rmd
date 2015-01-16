@@ -142,7 +142,7 @@ norm.bf <- function(x) {
 bisect.bf <- function(xy=c(2,2), tol=.001, s.a=-100, s.b=100) {
   s.c = (s.a + s.b) /2
   
-  direction <- grad.bf(params=xy)/norm.bf(grad.bf(params=xy))
+  direction <- -grad.bf(params=xy)/norm.bf(grad.bf(params=xy))
   
   while ((s.b-s.a)/2 > tol && abs(t(grad.bf(params=xy + direction*s.c))%*%direction) > tol) {
     grad.a <- t(grad.bf(params=(xy+s.a*direction)))%*%direction
