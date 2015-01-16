@@ -14,6 +14,7 @@ data <- read.table("economic_data.txt", header=T)
 M <- as.matrix(cbind(A0=rep(1,16),data[,2:7]))
 Y <- data$B
 
+#divide into smaller groups of alphas
 alpha <- solve(t(M) %*% M, tol=10^-30) %*% (t(M) %*% Y)
 ```
 The resulting alphas are `r alpha`.
@@ -73,6 +74,10 @@ qplot(x=s.a, y=y)
 qplot(x=s.a, y=y.g)
 
 #runs, but not very accurate
+#takes a long time, ~hour to get to final result
+#run once would all same alphas (current version)
+#run second time with large alphas
+#run third with varying size alphas
 descent.alpha <- function(initial = rep(1,7), target = 1) {
   alpha.new <- initial
   path <- rbind(rep(0,7),alpha.new)
@@ -120,30 +125,7 @@ b.fxn <- function(params = initial) {
   return(f.xy)
 }
 
-
-##f(a)*f(b) need to be less than 0, this is happening yet
-bisect.bf <- function(alphas=c(0,0), tol=.001, direction = .01, s.a=-1, s.b=1) {
-  s.c = (s.a + s.b) /2
-  
-  while (s.c > tol & b.fxn(params=alphas) != 0) {
-    grad.a <- grad.bf(params=(alphas+s.a*direction))*direction
-    grad.c <- grad.bf(params=(alphas+s.c*direction))*direction
-    
-    if(grad.a[1] * grad.c[1] < 0 | grad.a[2] * grad.c[2] < 0) {
-      s.b <- s.c
-    } else {
-      s.a <- s.c
-    }
-    s.c <- (s.a + s.b) /2  
-  }
-  return(c(s.a,s.b,s.c))
-}
-
-debug(bisect.bf)
-undebug(bisect.bf)
-bisect.bf()
-
-grad.bf <- function(params = initial) {
+grad.bf <- function(params = c(2,2)) {
   d.x <- -400*params[1]*params[2] + 400*params[1]^3 - 2 + 2*params[1]
   d.y <- 200*(params[2]-params[1]^2)
   return(c(d.x,d.y))
@@ -154,23 +136,56 @@ norm.bf <- function(x) {
   return(norm)
 }
 
-descent <- function(initial = c(2,2), target = .1) {
+xy <- c(0,0)
+
+#need to resolve: choosing initial s.a and s.b, what to return
+bisect.bf <- function(xy=c(4,4), tol=.001, s.a=-100, s.b=100) {
+  s.c = (s.a + s.b) /2
+  
+  direction <- grad.bf(params=xy)/norm.bf(grad.bf(params=xy))
+  
+  while ((s.b-s.a)/2 > tol && t(grad.bf(params=xy + direction*s.c))%*%direction != 0) {
+    grad.a <- t(grad.bf(params=(xy+s.a*direction)))%*%direction
+    grad.c <- t(grad.bf(params=(xy+s.c*direction)))%*%direction
+    
+    if(grad.a * grad.c < 0) {
+      s.b <- s.c
+    } else {
+      s.a <- s.c
+    }
+    s.c <- (s.a + s.b) /2  
+  }
+  return(s.c)
+}
+
+debug(bisect.bf)
+undebug(bisect.bf)
+bisect.bf()
+
+
+#figure out what it is going way off course
+#improve print out to file
+descent.bf <- function(initial = c(2,2), target = .1) {
   xy.new <- initial
   path <- NULL
   gradients <- NULL
   
-  while(norm(grad(params=xy.new)) > target ) {
+  while(norm.bf(grad.bf(params=xy.new)) > target ) {
     path <- rbind(path,xy.new)
-    gradients <- rbind(gradients,norm(grad(xy.new)))
+    gradients <- rbind(gradients,norm.bf(grad.bf(xy.new)))
     xy.old <- xy.new
     
-    dir <- -grad(xy.old) / norm(grad(xy.old))
-    step <- 
+    dir <- -grad.bf(xy.old) / norm.bf(grad.bf(xy.old))
+    step <- bisect.bf(xy=xy.old)
     xy.new <- xy.old + dir * step
-    print(norm(grad(xy.new)))
+    write.table(xy.new, "banana.txt", append=TRUE)
+    print(xy.new)
+    
   }
   return(rbind(path,xy.new))
 }
+
+descent.bf()
 
 ```
 
