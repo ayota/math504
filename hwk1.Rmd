@@ -6,6 +6,8 @@ output: html_document
 library(MASS)
 ```
 
+2 type up 2 here
+
 
 3 a) Normal equations: 
 ```{r}
@@ -36,8 +38,8 @@ norm.alpha <- function(x) {
 }
 
 bisect.alpha <- function(alpha=rep(0,7), tol=.001) {
-  s.a <- 0
-  s.b <- 100
+  s.a <- -10
+  s.b <- 10
   s.c = (s.a + s.b) /2
   direction <- -grad.alpha(alpha)/norm.alpha(grad.alpha(alpha))
   
@@ -126,25 +128,23 @@ b.fxn <- function(params = initial) {
 }
 
 grad.bf <- function(params = c(2,2)) {
-  d.x <- -400*params[1]*params[2] + 400*params[1]^3 - 2 + 2*params[1]
+  d.x <- -400*(params[2]-params[1]^2)*params[1]-2*(1-params[1])
   d.y <- 200*(params[2]-params[1]^2)
   return(c(d.x,d.y))
 }
 
 norm.bf <- function(x) {
-  norm <- sqrt(sum(x^2))
+  norm <- sqrt(sum(x)^2)
   return(norm)
 }
 
-xy <- c(0,0)
-
 #need to resolve: choosing initial s.a and s.b, what to return
-bisect.bf <- function(xy=c(4,4), tol=.001, s.a=-100, s.b=100) {
+bisect.bf <- function(xy=c(2,2), tol=.001, s.a=-100, s.b=100) {
   s.c = (s.a + s.b) /2
   
   direction <- grad.bf(params=xy)/norm.bf(grad.bf(params=xy))
   
-  while ((s.b-s.a)/2 > tol && t(grad.bf(params=xy + direction*s.c))%*%direction != 0) {
+  while ((s.b-s.a)/2 > tol && abs(t(grad.bf(params=xy + direction*s.c))%*%direction) > tol) {
     grad.a <- t(grad.bf(params=(xy+s.a*direction)))%*%direction
     grad.c <- t(grad.bf(params=(xy+s.c*direction)))%*%direction
     
