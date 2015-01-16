@@ -1,0 +1,180 @@
+---
+output: html_document
+---
+
+```{r}
+library(MASS)
+```
+
+
+3 a) Normal equations: 
+```{r}
+data <- read.table("economic_data.txt", header=T)
+
+M <- as.matrix(cbind(A0=rep(1,16),data[,2:7]))
+Y <- data$B
+
+alpha <- solve(t(M) %*% M, tol=10^-30) %*% (t(M) %*% Y)
+```
+The resulting alphas are `r alpha`.
+
+b) Steepest Descent:
+```{r}
+#doing initial values for alpha1 - alpha6
+initial <- rep(0, 7)
+
+#the gradient is for the least squares error equation
+#so then L(alpha) = (y-M*alpha)(y-M*alpha)
+#L'(alpha)= -1*(y-M*alpha) * (-1)*(y-M*alpha) = (y-M*alpha)(y-M*alpha)
+grad.alpha <- function(alpha=rep(0,7)) {
+  d.alphas <- 2*t(M)%*%M%*%alpha - 2*t(M)%*%Y
+  return(as.vector(d.alphas) )
+}
+
+norm.alpha <- function(x) {
+  norm <- sqrt(sum(x^2))
+  return(norm)
+}
+
+bisect.alpha <- function(alpha=rep(0,7), tol=.001) {
+  s.a <- 0
+  s.b <- 100
+  s.c = (s.a + s.b) /2
+  direction <- -grad.alpha(alpha)/norm(grad.alpha(alpha))
+  
+  
+  h.a <- t(grad.alpha(alpha=alpha+s.a*direction))%*%direction
+  h.b <- t(grad.alpha(alpha+s.b*direction))%*%direction
+  h.c <- t(grad.alpha(alpha=alpha+s.c*direction))%*%direction
+  
+  while ((s.b-s.a)/2 > tol & abs(t(grad.alpha(alpha+s.c*direction))%*%direction) > tol) {
+    grad.a <- t(grad.alpha(alpha=alpha+s.a*direction))%*%direction
+    grad.c <- t(grad.alpha(alpha=alpha+s.c*direction))%*%direction
+    
+    ifelse(grad.a * grad.c < 0, s.b <- s.c, s.a <- s.c)
+    s.c <- (s.a + s.b) /2  
+  }
+  return(s.c)
+}
+
+debug(bisect.alpha)
+undebug(bisect.alpha)
+bisect.alpha()
+
+##graph to show we're finding the minimum
+s.a <- seq(-10,10,.01)
+alpha <- rep(5,7)
+direction <- -grad.alpha(alpha)/norm(grad.alpha(alpha))
+y <- sapply(1:2001, function(x) t(Y-M%*%(alpha+s.a[x]*direction))%*%(Y-M%*%(alpha+s.a[x]*direction)))
+y.g <- sapply(1:2001, function(x) t(grad.alpha(alpha=alpha+s.a[x]*direction))%*%direction)
+
+#h(s)
+qplot(x=s.a, y=y)
+
+#g(s)
+qplot(x=s.a, y=y.g)
+
+#edit this to fit once bisect function works
+descent.alpha <- function(initial = rep(1,7), target = .1) {
+  alpha.new <- initial
+  path <- rbind(rep(0,7),alpha.new)
+  gradients <- NULL
+  i <- 2
+  
+  while(norm(grad.alpha(path[i,]))-norm(grad.alpha(path[i-1,])) > target ) {
+    path <- rbind(path,alpha.new)
+    gradients <- rbind(gradients,norm(grad.alpha(alpha.new)))
+    alpha.old <- alpha.new
+    
+    dir <- -grad.alpha(alpha.old) / norm(grad.alpha(alpha.old))
+    step <- bisect.alpha(alpha=alpha.old, tol=.001)
+    alpha.new <- alpha.old + dir * step
+    print(norm(grad.alpha(alpha.new)))
+    write.table(as.data.frame(alpha.new), file="alphas.txt", append=TRUE)
+  }
+  return(rbind(path,alpha.new))
+}
+
+descent.alpha()
+
+```
+
+c)
+```{r}
+attach(data)
+lm(B ~ A1 + A2 + A3 + A4 + A5 + A6)
+```
+
+4. Banana function
+The minimum of f is (1, 1) (why?). Starting at the point (4, 4) use Steepest descent with a
+bisection root finding method to try and ”find” the minimum. Produce a plot of the path
+your iteration takes, i.e. plot x
+(0), x(1), x(2), . . . . What does the path look like? You may just
+want to plot a few consecutive x(i) values if the points are too dense to tell apart.
+
+```{r}
+#doing initial values for x,y
+initial <- c(4,4)
+
+b.fxn <- function(params = initial) {
+  f.xy <- 100*(params[2]-params[1]^2)^2 + (1-params[1])^2
+  return(f.xy)
+}
+
+
+##f(a)*f(b) need to be less than 0, this is happening yet
+bisect.bf <- function(alphas=c(0,0), tol=.001, direction = .01, s.a=-1, s.b=1) {
+  s.c = (s.a + s.b) /2
+  
+  while (s.c > tol & b.fxn(params=alphas) != 0) {
+    grad.a <- grad.bf(params=(alphas+s.a*direction))*direction
+    grad.c <- grad.bf(params=(alphas+s.c*direction))*direction
+    
+    if(grad.a[1] * grad.c[1] < 0 | grad.a[2] * grad.c[2] < 0) {
+      s.b <- s.c
+    } else {
+      s.a <- s.c
+    }
+    s.c <- (s.a + s.b) /2  
+  }
+  return(c(s.a,s.b,s.c))
+}
+
+debug(bisect.bf)
+undebug(bisect.bf)
+bisect.bf()
+
+grad.bf <- function(params = initial) {
+  d.x <- -400*params[1]*params[2] + 400*params[1]^3 - 2 + 2*params[1]
+  d.y <- 200*(params[2]-params[1]^2)
+  return(c(d.x,d.y))
+}
+
+norm.bf <- function(x) {
+  norm <- sqrt(sum(x^2))
+  return(norm)
+}
+
+descent <- function(initial = c(2,2), target = .1) {
+  xy.new <- initial
+  path <- NULL
+  gradients <- NULL
+  
+  while(norm(grad(params=xy.new)) > target ) {
+    path <- rbind(path,xy.new)
+    gradients <- rbind(gradients,norm(grad(xy.new)))
+    xy.old <- xy.new
+    
+    dir <- -grad(xy.old) / norm(grad(xy.old))
+    step <- 
+    xy.new <- xy.old + dir * step
+    print(norm(grad(xy.new)))
+  }
+  return(rbind(path,xy.new))
+}
+
+```
+
+
+
+
