@@ -24,11 +24,9 @@ b) Steepest Descent:
 initial <- rep(0, 7)
 
 #the gradient is for the least squares error equation
-#so then L(alpha) = (y-M*alpha)(y-M*alpha)
-#L'(alpha)= -1*(y-M*alpha) * (-1)*(y-M*alpha) = (y-M*alpha)(y-M*alpha)
 grad.alpha <- function(alpha=rep(0,7)) {
   d.alphas <- 2*t(M)%*%M%*%alpha - 2*t(M)%*%Y
-  return(as.vector(d.alphas) )
+  return(as.vector(d.alphas))
 }
 
 norm.alpha <- function(x) {
@@ -40,7 +38,7 @@ bisect.alpha <- function(alpha=rep(0,7), tol=.001) {
   s.a <- 0
   s.b <- 100
   s.c = (s.a + s.b) /2
-  direction <- -grad.alpha(alpha)/norm(grad.alpha(alpha))
+  direction <- -grad.alpha(alpha)/norm.alpha(grad.alpha(alpha))
   
   
   h.a <- t(grad.alpha(alpha=alpha+s.a*direction))%*%direction
@@ -74,25 +72,26 @@ qplot(x=s.a, y=y)
 #g(s)
 qplot(x=s.a, y=y.g)
 
-#edit this to fit once bisect function works
-descent.alpha <- function(initial = rep(1,7), target = .1) {
+#runs, but not very accurate
+descent.alpha <- function(initial = rep(1,7), target = 1) {
   alpha.new <- initial
   path <- rbind(rep(0,7),alpha.new)
   gradients <- NULL
   i <- 2
   
-  while(norm(grad.alpha(path[i,]))-norm(grad.alpha(path[i-1,])) > target ) {
-    path <- rbind(path,alpha.new)
-    gradients <- rbind(gradients,norm(grad.alpha(alpha.new)))
+  while(abs(norm.alpha(grad.alpha(path[i,]))-norm.alpha(grad.alpha(path[i-1,]))) > 0 && norm.alpha(grad.alpha(alpha.new)) > target) {
+    gradients <- rbind(gradients,norm.alpha(grad.alpha(alpha.new)))
     alpha.old <- alpha.new
     
-    dir <- -grad.alpha(alpha.old) / norm(grad.alpha(alpha.old))
+    dir <- -grad.alpha(alpha.old) / norm.alpha(grad.alpha(alpha.old))
     step <- bisect.alpha(alpha=alpha.old, tol=.001)
     alpha.new <- alpha.old + dir * step
-    print(norm(grad.alpha(alpha.new)))
+    path <- rbind(path,alpha.new)
+    print(norm.alpha(grad.alpha(alpha.new)))
     write.table(as.data.frame(alpha.new), file="alphas.txt", append=TRUE)
+    i <- i + 1
   }
-  return(rbind(path,alpha.new))
+  return(alpha.new)
 }
 
 descent.alpha()
