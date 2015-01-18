@@ -1,86 +1,131 @@
 ---
-output: html_document
+output:
+  html_document:
+    fig_width: 5
 ---
+<p>Elaine Ayo</p>
+<p>Math 504</p>
+<p>Jan. 18, 2015</p>
 
-```{r}
+```{r echo=FALSE}
 library(MASS)
+library(ggplot2)
+library(scatterplot3d)
 ```
 
-2 type up 2 here
+<p>2 a) Show $u \cdot v = u^Tv$</p>
+<p>Given $u=\begin{pmatrix} u_1 \\ u_2 \\ \vdots \\ u_d \end{pmatrix}$ and $v=\begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_d \end{pmatrix}$</p>
 
+<p>By definition, the dot product is $u \cdot v = \Sigma^d_{i=1} u_i v_i = u_1 v_1 + u_2 v_2 + ... + u_d v_d$</p>
+<p>$u^T = (u_1 u_2 ... u_d)$ and $v= \begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_d \end{pmatrix}$</p>
+<p>Using matrix multiplication, we get $u^Tv = u_1 v_1 + u_2 v_2 + ... + u_d v_d$, which equals $u \cdot v$.
 
-3 a) Normal equations: 
+<p>b) Given $u=\begin{pmatrix} u_1 \\ u_2 \\ \vdots \\ u_d \end{pmatrix}$ , $v=\begin{pmatrix} v_1 \\ v_2 \\ \vdots \\ v_{d'} \end{pmatrix}$ , and $M=\begin{bmatrix}m_{11} & \cdots & m_{1d'} \\ \vdots & \ddots & \vdots \\ m_{d1} & \cdots & m_{dd'}\end{bmatrix}$</p>
+
+<p>Show $u \cdot Mv = M^Tu \cdot v = u^TMv$</p>
+<p>$u \cdot Mv = u \cdot \begin{pmatrix} m_{11}v_1 + m_{12}v_2 + \cdots + m_{1d'}v_{d'} \\ m_{21}v_1 + m_{22}v_2 + \cdots + m_{2d'}v_{d'} \\ \vdots \\ m_{d1}v_1 + m_{d2}v_2 + \cdots + m_{dd'}v_{d'} \end{pmatrix}$ </p>
+<p>$= u_1m_{11}v_1 + u_1m_{12}v_2 + ... + u_1m_{1d'}v_{d'} + u_2m_{21}v_1 + u_2m_{22}v_2 + \dots + u_2m_{2d'}v_{d'} + ... + u_dm_{d1}v_1 + u_dm_{d2}v_2 + ... + u_dm_{dd'}v_{d'}$</p>
+
+<p>$M^Tu \cdot v = \begin{pmatrix} m_{11}u_1 + m_{12}u_2 + \cdots + m_{1d}u_{d} \\ m_{21}u_1 + m_{22}u_2 + \cdots + m_{2d}u_{d} \\ \vdots \\ m_{d'1}u_1 + m_{d'2}u_2 + \cdots + m_{d'd}u_{d} \end{pmatrix} \cdot v$</p>
+<p>$= m_{11}u_1v_1 + m_{12}u_2v_1 + ... + m_{1d}u_dv_{1} + m_{21}u_1v_2 + m_{22}u_2v_2 + ... + m_{2d}u_dv_{2} + ... + m_{d'1}u_1v_{d'} + m_{d'2}u_2v_{d'} + ... + m_{d'd}u_dv_{d'}$</p>
+
+<p>$u^TMv = \begin{pmatrix} u_1m_{11} + u_2m_{12} + \cdots + u_{d}m_{1d} \\ u_1m_{21} + u_2m_{22} + \cdots + u_{d}m_{2d} \\ \vdots \\ u_1m_{d'1} + u_2m_{d'2} + \cdots + u_{d}m_{d'd} \end{pmatrix}v$</p>
+<p>$= m_{11}u_1v_1 + m_{12}u_2v_1 + ... + m_{1d}u_dv_{1} + m_{21}u_1v_2 + m_{22}u_2v_2 + ... + m_{2d}u_dv_{2} + ... + m_{d'1}u_1v_{d'} + m_{d'2}u_2v_{d'} + ... + m_{d'd}u_dv_{d'}$</p>
+
+<p>Since multiplication is commutative, all these sums are equal, showing that $u \cdot Mv = M^Tu \cdot v = u^TMv$</p>
+
+<p>c) Given $A=\begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}$ , $b=\begin{pmatrix} b_1 \\ b_2 \end{pmatrix}$ , $x=\begin{pmatrix} x_1 \\ x_2 \end{pmatrix}$ and c is some scalar.</p>
+
+<p>$x^TAx + b^Tx + c = \begin{pmatrix} x_1 & x_2 \end{pmatrix}\begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}\begin{pmatrix} x_1 \\ x_2 \end{pmatrix} + \begin{pmatrix} b_1 & b_2 \end{pmatrix}\begin{pmatrix} x_1 \\ x_2 \end{pmatrix} + c$</p>
+<p>$=\begin{pmatrix} x_1 & x_2 \end{pmatrix}\begin{pmatrix} a_{11}x_1 & a_{12}x_2 \\ a_{21}x_1 & a_{22} x_2\end{pmatrix} + b_1x_1 +b_2x_2 + c = a_{11}x^2_1 + a_{12}x_2x_1 + a_{21}x_1x_2 + a_{22}x_2^2 + b_1x_1 + b_2x_2 + c$</p>
+
+<p> d) $f(x) = x^TAx + b^Tx + c$ where A is d x d', b is d dimensional, and c is a scalar </p>.
+<p>$\nabla f(x) = \nabla (a_{11}x^2_1 + a_{12}x_2x_1 + a_{21}x_1x_2 + a_{22}x_2^2 + b_1x_1 + b_2x_2 + c)$</p>
+<p>$\frac{d}{dx_1} = a_{11}2x_{1} + a_{12}x_{2} + a_{21}x_2 + 0 + b_1 + 0 + 0$</p>
+<p>$\frac{d}{dx_2} = 0 + a_{12}x_{1} + a_{21}x_1 + 2a_{22}x_2 + 0 + b_2 + 0$</p>
+<p>$\nabla f(x) = \begin{bmatrix} 2a_{11} & a_{12} + a_{21} \\ 2a_{22} & a_{12} + a_{21} \end{bmatrix} \begin{bmatrix} x_1 x_2 \end{bmatrix} + b = (A + A)x + b = 2Ax + b$</p>
+<p>Solving for critical point:</p>
+<p>$x = -1/2 A^{-1}b$</p>
+<p>By the second derivative test, $(2Ax + b)' = 2A$. Thus, whether it is a max or a min depends on the values of A.</p>
+
+<p>3 a) Derive the normal equations: </p>
+<p>Minimize the loss function $L(\alpha_0, \alpha_1, ... \alpha_d) = \Sigma^n_{i=1} r_i^2 = \Sigma^n_{i=1} (y_i - \alpha_0 - \Sigma^d_{j=1} \alpha_j x_j^(i))^2$</p>
+<p>Let $Y = \begin{bmatrix} Y_1 \\ Y_2 \\ \vdots \\ Y_n \end{bmatrix}$ and $M = \begin{bmatrix} 1 & x^{(1)}_{1} & x^{(1)}_{2} & \cdots & x^{(1)}_{d} \\ 1 & x^{(2)}_{1} & x^{(2)}_{2} & \cdots & x^{(2)}_{d} \\ \vdots \\ 1 & x^{(n)}_{1} & x^{(n)}_{2} & \cdots & x^{(n)}_{d} \end{bmatrix} \begin{bmatrix} \alpha_0 & \alpha_1 & \cdots & \alpha_d \end{bmatrix}$</p>
+
+<p>$r=\begin{bmatrix} r_1 \\ r_2 \\ \vdots \\ r_n \end{bmatrix} = y - M\alpha$</p>
+<p>$L(\alpha) = \Sigma_{i=1}^n r^2_i = ||y-M\alpha||^2$</p>
+<p>$L(\alpha) = (y - M\alpha) \cdot (y - M\alpha) = y \cdot y - y \cdot M \alpha - M \alpha \cdot y + M \alpha \cdot M \alpha = y^Ty - 2y^TM \alpha + (M \alpha)^TM \alpha = c- 2(M^Ty)^T\alpha + \alpha^TM^TM\alpha$</p>
+<p>Thus, $b=-2M^Ty$ and $A=M^TM$. Applying quadratic optimization, we get $\alpha=1/2(M^TM)^{-1}(-2M^Ty) = (M^TM)^{-1}M^Ty$, which are the normal equations.</p>
+
+<p>Fitting the model using the normal equations to determine $\alpha$. To find all seven alphas, I had to increase the tolerance on R's inverse function because otherwise it said the matrix was singular.</p>
 ```{r}
 data <- read.table("economic_data.txt", header=T)
 
 M <- as.matrix(cbind(A0=rep(1,16),data[,2:7]))
 Y <- data$B
 
-#divide into smaller groups of alphas
 alpha <- solve(t(M) %*% M, tol=10^-30) %*% (t(M) %*% Y)
 ```
-The resulting alphas are `r alpha`.
+<p>The resulting alphas are `r alpha`.</p>
 
-b) Steepest Descent:
+<p>I also divide the alphas into small groups.</p>
 ```{r}
-#doing initial values for alpha1 - alpha6
-initial <- rep(0, 7)
+M2 <- as.matrix(cbind(A0=rep(1,16),data[,2:3]))
+M3 <- as.matrix(cbind(data[,4:7]))
 
-#the gradient is for the least squares error equation
+alpha2 <- solve(t(M2) %*% M2) %*% (t(M2) %*% Y)
+alpha3 <- solve(t(M3) %*% M3) %*% (t(M3) %*% Y)
+```
+<p>This resulted in alpha values of `r alpha2` `r alpha3`, which are really different from the previous answer and the regression function as expected because it is only using part of the data.</p>
+
+<p>b)</p>
+<p>Bisection function:</p>
+```{r}
 grad.alpha <- function(alpha=rep(0,7)) {
   d.alphas <- 2*t(M)%*%M%*%alpha - 2*t(M)%*%Y
   return(as.vector(d.alphas))
 }
 
 norm.alpha <- function(x) {
-  norm <- sqrt(sum(x^2))
+  norm <- sqrt(sum(x)^2)
   return(norm)
 }
 
-bisect.alpha <- function(alpha=rep(0,7), tol=.001) {
-  s.a <- -10
-  s.b <- 10
+bisect.alpha <- function(alpha=rep(0,7), tol=.001, s.a=0, s.b=100) {  
   s.c = (s.a + s.b) /2
   direction <- -grad.alpha(alpha)/norm.alpha(grad.alpha(alpha))
-  
-  
-  h.a <- t(grad.alpha(alpha=alpha+s.a*direction))%*%direction
-  h.b <- t(grad.alpha(alpha+s.b*direction))%*%direction
-  h.c <- t(grad.alpha(alpha=alpha+s.c*direction))%*%direction
-  
-  while ((s.b-s.a)/2 > tol & abs(t(grad.alpha(alpha+s.c*direction))%*%direction) > tol) {
-    grad.a <- t(grad.alpha(alpha=alpha+s.a*direction))%*%direction
-    grad.c <- t(grad.alpha(alpha=alpha+s.c*direction))%*%direction
+  g.c <- t(grad.alpha(alpha=alpha+s.c*direction))%*%direction
+
+  while ((s.b-s.a)/2 > tol & abs(g.c) > tol) {
+    g.a <- t(grad.alpha(alpha=alpha+s.a*direction))%*%direction
+    g.c <- t(grad.alpha(alpha=alpha+s.c*direction))%*%direction
     
-    ifelse(grad.a * grad.c < 0, s.b <- s.c, s.a <- s.c)
+    ifelse(g.a * g.c < 0, s.b <- s.c, s.a <- s.c)
     s.c <- (s.a + s.b) /2  
+    g.c <- t(grad.alpha(alpha=(alpha+s.c*direction)))%*%direction
   }
   return(s.c)
 }
 
-debug(bisect.alpha)
-undebug(bisect.alpha)
-bisect.alpha()
+bisect1 <- bisect.alpha(alpha=rep(5,7))
+```
 
-##graph to show we're finding the minimum
+<p>The function finds a minimum at `r bisect1`, which is confirmed as the root by the graph below.</p>
+
+```{r, echo=FALSE, fig.align='center'}
+#graph to show we're finding the minimum
 s.a <- seq(-10,10,.01)
-alpha <- rep(5,7)
-direction <- -grad.alpha(alpha)/norm(grad.alpha(alpha))
-y <- sapply(1:2001, function(x) t(Y-M%*%(alpha+s.a[x]*direction))%*%(Y-M%*%(alpha+s.a[x]*direction)))
-y.g <- sapply(1:2001, function(x) t(grad.alpha(alpha=alpha+s.a[x]*direction))%*%direction)
-
-#h(s)
-qplot(x=s.a, y=y)
+alpha <- as.matrix(rep(5,7))
+direction <- -grad.alpha(alpha)/norm.alpha(grad.alpha(alpha))
+g <- sapply(1:2001, function(x) t(grad.alpha(alpha=alpha+s.a[x]*direction))%*%direction)
 
 #g(s)
-qplot(x=s.a, y=y.g)
+qplot(x=s.a, y=g) + xlab("s") + ylab("g(s)")
+```
 
-#runs, but not very accurate
-#takes a long time, ~hour to get to final result
-#run once would all same alphas (current version)
-#run second time with large alphas
-#run third with varying size alphas
-descent.alpha <- function(initial = rep(1,7), target = 1) {
+<p>Steepest descent function: </p>
+```{r, eval=FALSE}
+descent.alpha <- function(initial = rep(1,7), target = .1) {
   alpha.new <- initial
   path <- rbind(rep(0,7),alpha.new)
   gradients <- NULL
@@ -91,37 +136,105 @@ descent.alpha <- function(initial = rep(1,7), target = 1) {
     alpha.old <- alpha.new
     
     dir <- -grad.alpha(alpha.old) / norm.alpha(grad.alpha(alpha.old))
-    step <- bisect.alpha(alpha=alpha.old, tol=.001)
+    step <- bisect.alpha(alpha=alpha.old)
     alpha.new <- alpha.old + dir * step
     path <- rbind(path,alpha.new)
-    print(norm.alpha(grad.alpha(alpha.new)))
-    write.table(as.data.frame(alpha.new), file="alphas.txt", append=TRUE)
+    results <- data.frame(a0 = alpha.new[1], a1 = alpha.new[2], a2 = alpha.new[3], a3 = alpha.new[4], a4 = alpha.new[5], a5 = alpha.new[6], a6=alpha.new[7] )
+    write.table(results, file="alphas2.csv", row.names = FALSE, col.names = FALSE, append=TRUE)
     i <- i + 1
   }
   return(alpha.new)
 }
 
 descent.alpha()
-
 ```
 
-c)
+<p>The first time I ran the steepest descent, I started at initial values of all 1's. This resulted in alphas of $\alpha_0= 1.00001293669765$, $\alpha_1=1.00001112012728$, $\alpha_2=-0.00358180639258004$, $\alpha_3=-0.228874558065547$, $\alpha_4=0.84611301382259$, $\alpha_5=0.538881251728073$, and $\alpha_6=1.02433275134753$. I tried starting with high initial values, but after 12 hours it never converged, so I gave up.</p>
+
+<p>To attempt to address the large differences in the scale of the different variables in the data, I rescaled it as follows:
+<ul>
+<li>A1, the percentage price deflation; > Left as is</li>
+<li>A2, the GNP in millions of dollars; > Divided by 1,000, so GNP is in billions</li>
+<li>A3, the number of unemployed; > Divided by 100, so it is now in 100's of people</li>
+<li>A4, the number of people employed by the military; > Divided by 100, so now in 100's of people</li>
+<li>A5, the number of people over 14; Divided by 1,000, so now in 1,000's of people</li>
+<li>A6, the year; > Divided by 100, so now in centuries (egh, these aren't terribly practical)</li>
+<li>B,  the number of people employed > Divided by 100, so now in 100's of people</li>
+</ul>
+</p>
+
+```{r}
+#rescaling data
+M.s <- as.matrix(cbind(A0=rep(1,16),A1=data[,2], A2=data[,3]/1000, data[,4:5]/100, A5=data[,6]/1000, A6=data[,7]/100))
+Y.s <- data$B/100
+
+#running part a again
+alpha.s <- solve(t(M.s) %*% M.s) %*% (t(M.s) %*% Y.s)
+```
+
+<p>The coefficients are of different magnitudes but the same pattern as before (`r alpha.s`), without needing to adjust R's inverse function.</p>
+
+```{r, echo=FALSE, eval=FALSE}
+#running steepest ascent to use scaled values
+grad.alpha.s <- function(alpha=rep(0,7)) {
+  d.alphas <- 2*t(M.s)%*%M.s%*%alpha - 2*t(M.s)%*%Y.s
+  return(as.vector(d.alphas))
+}
+
+bisect.alpha.s <- function(alpha=rep(0,7), tol=.001, s.a=0, s.b=100) {  
+  s.c = (s.a + s.b) /2
+  direction <- -grad.alpha.s(alpha)/norm.alpha(grad.alpha.s(alpha))
+  g.c <- t(grad.alpha.s(alpha=alpha+s.c*direction))%*%direction
+
+  while ((s.b-s.a)/2 > tol & abs(g.c) > tol) {
+    g.a <- t(grad.alpha.s(alpha=alpha+s.a*direction))%*%direction
+    g.c <- t(grad.alpha.s(alpha=alpha+s.c*direction))%*%direction
+    
+    ifelse(g.a * g.c < 0, s.b <- s.c, s.a <- s.c)
+    s.c <- (s.a + s.b) /2  
+    g.c <- t(grad.alpha.s(alpha=(alpha+s.c*direction)))%*%direction
+  }
+  return(s.c)
+}
+
+descent.alpha.s <- function(initial = rep(0,7), target = 1) {
+  alpha.new <- initial
+  path <- rbind(rep(1,7),alpha.new)
+  gradients <- NULL
+  i <- 2
+  
+  while(abs(norm.alpha(grad.alpha.s(path[i,]))-norm.alpha(grad.alpha.s(path[i-1,]))) > 0 && norm.alpha(grad.alpha.s(alpha.new)) > target) {
+    gradients <- rbind(gradients,norm.alpha(grad.alpha.s(alpha.new)))
+    alpha.old <- alpha.new
+    
+    dir <- -grad.alpha.s(alpha.old) / norm.alpha(grad.alpha.s(alpha.old))
+    step <- bisect.alpha.s(alpha=alpha.old)
+    alpha.new <- alpha.old + dir * step
+    path <- rbind(path,alpha.new)
+    results <- data.frame(a0 = alpha.new[1], a1 = alpha.new[2], a2 = alpha.new[3], a3 = alpha.new[4], a4 = alpha.new[5], a5 = alpha.new[6], a6=alpha.new[7] )
+    write.table(results, file="alphas4.csv", row.names = FALSE, col.names = FALSE, append=TRUE)
+    i <- i + 1
+  }
+  return(alpha.new)
+}
+
+descent.alpha.s()
+```
+
+<p>The steepest descent function was not very accurate for the data as is and took a long time to converge. I think the issue is that the values in the data and alpha values it is finding have significant differences in magnitude, so when the intial values were close to 1, the small alphas were close to their counterparts in parts a and c, but the ones that were really large weren't even close. When I rescaled the data, the values were of the same magnitude by not a whole lot closer to the values acquired through the other two methods: $\alpha_0=0.05182365$, $\alpha_1=2.29798604$, $\alpha_2=-0.09563676$, $\alpha_3=-1.38590741$, $\alpha_4=-0.60747853$, $\alpha_5=4.23242705$, and $\alpha_6=1.00452766$. This also introduces the problem of how exactly to interpret the results in nonstandard units.</p>
+
+<p>c) The regression model shows similar coefficients to part a.</p>
 ```{r}
 attach(data)
-lm(B ~ A1 + A2 + A3 + A4 + A5 + A6)
+fit <- lm(B ~ A1 + A2 + A3 + A4 + A5 + A6)
+summary(fit)
 ```
 
-4. Banana function
-The minimum of f is (1, 1) (why?). Starting at the point (4, 4) use Steepest descent with a
-bisection root finding method to try and ”find” the minimum. Produce a plot of the path
-your iteration takes, i.e. plot x
-(0), x(1), x(2), . . . . What does the path look like? You may just
-want to plot a few consecutive x(i) values if the points are too dense to tell apart.
+<p>4. Banana function</p>
+<p>The minimum of the function is (1,1) because that is when the function is 0. It can't be negative because both $(1-x)$ and $(y-x^2)$ are squared.</p>
 
 ```{r}
-#doing initial values for x,y
-initial <- c(4,4)
-
+#banana function, gradient of banana function, and norm function
 b.fxn <- function(params = initial) {
   f.xy <- 100*(params[2]-params[1]^2)^2 + (1-params[1])^2
   return(f.xy)
@@ -137,58 +250,86 @@ norm.bf <- function(x) {
   norm <- sqrt(sum(x)^2)
   return(norm)
 }
+```
 
-#need to resolve: choosing initial s.a and s.b, what to return
-bisect.bf <- function(xy=c(2,2), tol=.001, s.a=-100, s.b=100) {
-  s.c = (s.a + s.b) /2
-  
+```{r}
+#bisection function
+bisect.bf <- function(xy=c(2,2), tol=.001, s.a=0, s.b=100) {
+  s.c <- (s.a + s.b) /2
   direction <- -grad.bf(params=xy)/norm.bf(grad.bf(params=xy))
+  g.c <- t(grad.bf(params=(xy+s.c*direction)))%*%direction
   
-  while ((s.b-s.a)/2 > tol && abs(t(grad.bf(params=xy + direction*s.c))%*%direction) > tol) {
-    grad.a <- t(grad.bf(params=(xy+s.a*direction)))%*%direction
-    grad.c <- t(grad.bf(params=(xy+s.c*direction)))%*%direction
+  while ((s.b-s.a)/2 > tol && abs(g.c) > tol) {
+    g.a <- t(grad.bf(params=(xy+s.a*direction)))%*%direction
+    g.c <- t(grad.bf(params=(xy+s.c*direction)))%*%direction
     
-    if(grad.a * grad.c < 0) {
-      s.b <- s.c
-    } else {
-      s.a <- s.c
-    }
+    ifelse(g.a * g.c < 0, s.b <- s.c, s.a <- s.c)
     s.c <- (s.a + s.b) /2  
+    g.c <- t(grad.bf(params=(xy+s.c*direction)))%*%direction
   }
   return(s.c)
 }
-
-debug(bisect.bf)
-undebug(bisect.bf)
-bisect.bf()
-
-
-#figure out what it is going way off course
-#improve print out to file
-descent.bf <- function(initial = c(2,2), target = .1) {
-  xy.new <- initial
-  path <- NULL
-  gradients <- NULL
-  
-  while(norm.bf(grad.bf(params=xy.new)) > target ) {
-    path <- rbind(path,xy.new)
-    gradients <- rbind(gradients,norm.bf(grad.bf(xy.new)))
-    xy.old <- xy.new
-    
-    dir <- -grad.bf(xy.old) / norm.bf(grad.bf(xy.old))
-    step <- bisect.bf(xy=xy.old)
-    xy.new <- xy.old + dir * step
-    write.table(xy.new, "banana.txt", append=TRUE)
-    print(xy.new)
-    
-  }
-  return(rbind(path,xy.new))
-}
-
-descent.bf()
-
 ```
 
+<p>Again, the bisection function gives different results based on the intial choice of the interval [a,b]:</p>
 
+```{r, echo=FALSE}
+bisects <- read.table("tests.csv", header=TRUE)
+row.names(bisects) <- c("s.a","s.b","s.c")
+bisects
+```
+
+<p>There appears to be multiple possible roots (see below), but I chose to set the initial interval to [0,100] in the interest of starting on a small interval for efficieny's sake while not making it too small as to limit the root finding function.</p>
+
+```{r, fig.align='center', echo=FALSE}
+##graph to show we're finding the minimum
+s.a <- seq(-10,10,.01)
+direction <- -grad.bf(params=c(4,4))/norm.bf(grad.bf(params=c(4,4)))
+xy <- c(4,4)
+y <- sapply(1:2001, function(x) t(grad.bf(params=(xy+s.a[x]*direction)))%*%direction)
+
+#h(s)
+qplot(x=s.a, y=y) + ggtitle("Step Size Banana Function at (4,4)")
+```
+
+```{r, eval=FALSE}
+descent.bf <- function(initial = c(4,4), target = .005) {
+  #initialize all the things
+  xy.new <- initial
+  grad.new <- grad.bf(params=xy.new)
+  
+  while(norm.bf(grad.new) > target ) {
+    #making room for new values
+    xy.old <- xy.new
+    grad.old <- grad.new
+    
+    dir <- -grad.old / norm.bf(grad.old)
+    step <- bisect.bf(xy=xy.old)
+    xy.new <- xy.old + dir * step
+    grad.new <- grad.bf(params=xy.new)
+    
+    results <- data.frame(x=xy.new[1], y=xy.new[2], grad=norm.bf(grad.new))
+    write.table(results, "banana.csv", row.names = FALSE, col.names = FALSE, append=TRUE)
+  }
+  return(xy.new)
+}
+
+xy <- descent.bf()
+```
+
+As shown below, the steepest descent values of x=.9558437, y=.91317490 crosses where f(x,y) = 0.
+
+```{r, fig.align='center', echo=FALSE}
+xy <- read.table("banana.csv", header=FALSE)
+z <- sapply(1:66, function(x) b.fxn(params=xy[x,1:2]))
+scatterplot3d(xy$V1,xy$V2,z,
+              main="Banana Function Root Finding",
+              xlab="X",
+              ylab="Y",
+              zlab="f(x,y)")
+
+qplot(1:66, xy$V1, geom="line") + xlab("Step") + ylab("X value") + ggtitle("Banana Function: Path of X Values")
+qplot(1:66, xy$V2, geom="line") + xlab("Step") + ylab("Y value") + ggtitle("Banana Function: Path of Y Values")
+```
 
 
