@@ -1,0 +1,337 @@
+---
+output:
+  html_document:
+    fig_width: 5
+---
+<p>Elaine Ayo</p>
+<p>Math 504</p>
+<p>Jan. 25, 2015</p>
+
+```{r echo=FALSE}
+library(MASS)
+library(ggplot2)
+library(scatterplot3d)
+library(reshape2) 
+```
+
+<p>2 a)</p>
+<p>Graph of function:</p>
+```{r, echo=FALSE, error=FALSE, warning=FALSE}
+f.xy <- function(params=data.frame(x=0, y=0)) {
+  params <- params
+  xy <- 2000*(params$x)^2 + (params$y)^2
+  return(xy)
+}
+
+x.s <- seq(-10,10,1)
+y.s <- x.s
+
+z <- sapply(1:21, function(i) sapply(1:21, function(j) f.xy(params=data.frame(x=x.s[i],y=y.s[j]))))
+
+base <- persp(x.s, y.s, z, theta = 60, phi = 20, expand = 0.5, col = "lightblue", ltheta = 120, shade = 0.75, border=NA, xlab = "X", ylab = "Y", zlab = "Z") 
+base + title("f(x,y) with x,y = [-10,10]")
+```
+
+<p>Steepest descent function: </p>
+```{r, eval=FALSE}
+grad <- function(params=data.frame(x=10, y=10)) {
+  d.x <- 4000*params$x
+  d.y <- 2*params$y
+  return(c(d.x,d.y))
+}
+
+norm <- function(x) {
+  norm <- sqrt(sum(x)^2)
+  return(norm)
+}
+
+descent <- function(initial = data.frame(x=10, y=10), target = 1) {
+  #initialize all the things
+  xy.new <- data.frame(x=10, y=10)
+  grad.new <- grad(params=xy.new)
+  
+  while(norm(grad.new) > target ) {
+    #making room for new values
+    xy.old <- xy.new
+    grad.old <- grad.new
+    
+    dir <- -grad.old / norm(grad.old)
+    step <- 1
+    xy.new <- xy.old + dir * step
+    grad.new <- grad(params=xy.new)
+    
+    results <- data.frame(x=xy.new$x, y=xy.new$y, norm.grad=norm(grad.new))
+    write.table(results, "2a4.csv", row.names = FALSE, col.names = FALSE, append=TRUE)
+  }
+  return(xy.new)
+}
+
+xy <- descent()
+```
+
+<p>Trial 1 (cyan): Step size: .1; target: .1; No. of steps: 582; Roots: x=0.0003217926 / y=-0.6003218 </p>
+<p>Trial 2 (pink): Step size: .01; target: .01; No. of steps: 5,674; Roots: x=-1.003020e-06 / y=1.003020e-06</p>
+<p>Trial 3 (green): Step size: .001; target: .001; No. of steps: 20,000; Roots: x=0 / y=3.331363e-14</p>
+<p>Trial 4 (Gray): Step size: 1; target: 1; No. of steps: 3,296; Roots: x=-5.809212e-05 / y=5.809212e-05</p>
+
+```{r}
+
+data1 <- read.table("2a.csv", header=FALSE)
+x.path1 <- data1$V1
+y.path1 <- data1$V2
+
+data2 <- read.table("2a2.csv", header=FALSE)
+x.path2 <- data2$V1
+y.path2 <- data2$V2
+
+data3 <- read.table("2a3.csv", header=FALSE)
+x.path3 <- data3$V1
+y.path3 <- data3$V2
+
+data4 <- read.table("2a4.csv", header=FALSE)
+x.path4 <- data4$V1
+y.path4 <- data4$V2
+
+base <- persp(x.s, y.s, z, theta = 60, phi = 20, expand = 0.5, col = "lightblue", ltheta = 120, shade = 0.75, border=NA, xlab = "X", ylab = "Y", zlab = "Z") + title("f(x,y) with various paths to minimum")
+
+lines(trans3d(x=x.path4, y = y.path4, z = f.xy(params=data.frame(x.path4,y.path4)), pmat = base), col = 8, lwd = 4)
+
+lines(trans3d(x=x.path1, y = y.path1, z = f.xy(params=data.frame(x.path1,y.path1)), pmat = base), col = 5, lwd = 2)
+
+lines(trans3d(x=x.path2, y = y.path2, z = f.xy(params=data.frame(x.path2,y.path2)), pmat = base), col = 6, lwd = 1)
+
+lines(trans3d(x=x.path3+.1, y = y.path3+.1, z = f.xy(params=data.frame(x.path3,y.path3))+.1, pmat = base), col = 3, lwd = .2)
+```
+<p>b)</p>
+<p>Bisection function:</p>
+```{r}
+bisect <- function(xy=data.frame(x=10, y=10), tol=.001, s.a=0, s.b=100) {
+  xy=data.frame(x=10, y=10)
+  s.a <- 0
+  s.b <- 100
+  s.c <- (s.a + s.b) /2
+  direction <- -grad(params=xy)/norm(grad(params=xy))
+  g.c <- t(grad(params=(xy+s.c*direction)))%*%direction
+  
+  while ((s.b-s.a)/2 > tol && abs(g.c) > tol) {
+    g.a <- t(grad(params=(xy+s.a*direction)))%*%direction
+    g.c <- t(grad(params=(xy+s.c*direction)))%*%direction
+    
+    ifelse(g.a * g.c < 0, s.b <- s.c, s.a <- s.c)
+    s.c <- (s.a + s.b) /2  
+    g.c <- t(grad(params=(xy+s.c*direction)))%*%direction
+  }
+  return(s.c)
+}
+
+bisect1 <- bisect()
+```
+
+<p>The function finds a minimum at `r bisect1`, which is confirmed as the root by the graph below.</p>
+
+```{r, echo=FALSE, fig.align='center'}
+s.a <- seq(-30,30,1)
+xy <- data.frame(x=10,y=10)
+direction <- -grad(xy)/norm(grad(xy))
+g.s <- sapply(1:61, function(x) t(grad(params=(xy+s.a[x]*direction)))%*%direction)
+
+#h(s)
+qplot(x=s.a, y=g.s, geom="line") + ggtitle("g(s) for f(x,y) when x=10 and y=10")
+```
+
+<p>Steepest descent function: </p>
+```{r, eval=FALSE}
+
+##something weird is going on, graph 2a5 and see what's up
+#compare to how gradients graphed for consistent step size runs
+
+descent.b <- function(initial = data.frame(x=10, y=10), target = 1) {
+  #initialize all the things
+  xy.new <- data.frame(x=10, y=10)
+  grad.new <- grad(params=xy.new)
+  
+  while(norm(grad.new) > target ) {
+    #making room for new values
+    xy.old <- xy.new
+    grad.old <- grad.new
+    
+    dir <- -grad.old / norm(grad.old)
+    step <- bisect(xy=xy.old)
+    xy.new <- xy.old + dir * step
+    grad.new <- grad(params=xy.new)
+    
+    results <- data.frame(x=xy.new$x, y=xy.new$y, norm.grad=norm(grad.new))
+    write.table(results, "2a5.csv", row.names = FALSE, col.names = FALSE, append=TRUE)
+  }
+  return(xy.new)
+}
+
+xy <- descent.b()
+```
+
+<p>c)</p>
+
+<p>3. a)</p>
+```{r}
+heights <- read.table("children_heights", header=TRUE)
+
+#group1: boys_2  
+#group2: boys_9
+#group3: boys_18
+
+#put this in a list and write function to dynamically create list of means for given N, same logic for making multiple plots
+#mean1 <- mean(heights$Boys_2, na.rm=TRUE)
+#mean2 <- mean(heights$Boys_9, na.rm=TRUE)
+#mean3 <- mean(heights$Boys_18, na.rm=TRUE)
+
+means <- sapply(1:3, function(x) mean(heights[,x], na.rm=TRUE))
+
+#N=78 (all boys in data, minus 3 is 75)
+#var.boys <- (1/75) * (sum((heights$Boys_2 - mean1)^2, na.rm=TRUE) + sum((heights$Boys_9 - mean2)^2, na.rm=TRUE) + sum((heights$Boys_18 - mean3)^2, na.rm=TRUE))
+
+vars <- (1/75) * sum(sapply(1:3, function(x) sum((heights[,x]-means[x])^2, na.rm=TRUE)))
+
+#boys <- c(heights[,1], heights[,2], heights[,3])
+#boys <- boys[!is.na(boys)]
+
+boys.melt <- melt(heights[,1:3], na.rm= TRUE)
+colnames(boys.melt) <- c("Class","Height")
+
+class.boys <- function(boy=90) {
+  means <- sapply(1:3, function(x) mean(heights[,x], na.rm=TRUE))
+
+  var.boys <- (1/75) * sum(sapply(1:3, function(x) sum((heights[,x]-means[x])^2, na.rm=TRUE)))
+  
+  #class <- data.frame(g1 = dnorm(boy,mean=mean[1],sd=sqrt(var.boys)), g2 = dnorm(boy,mean=mean[2],sd=sqrt(var.boys)), g3 = dnorm(boy,mean=mean[3],sd=sqrt(var.boys)))
+  
+  class <- sapply(1:3, function(x) dnorm(boy, mean=means[x], sd=sqrt(var.boys)))
+
+  return(which.max(class))
+}
+
+classes.boy <- factor(sapply(1:78, function(x) class.boys(boy=boys.melt$Height[x])), labels=c("Boys_2", "Boys_9", "Boys_18"))
+
+
+final.boys <- data.frame(Height=boys, Original=factor(boys.melt$Class), New=classes.boy)
+
+fails <- sum(ifelse(final.boys$Original == final.boys$New, 0, 1))
+
+#All boys classified correctly
+```
+<p>All boys are classified correctly.</p>
+
+<p>b)</p>
+```{r}
+heights <- read.table("children_heights", header=TRUE)
+
+#group1: boys_2  
+#group2: boys_9
+#group3: boys_18
+#group4: Girls_2  
+#group5: Girls_9
+#group6: Girls_18
+
+#put this in a list and write function to dynamically create list of means for given N, same logic for making multiple plots
+mean1 <- mean(heights$Boys_2, na.rm=TRUE)
+mean2 <- mean(heights$Boys_9, na.rm=TRUE)
+mean3 <- mean(heights$Boys_18, na.rm=TRUE)
+mean4 <- mean(heights$Girls_2, na.rm=TRUE)
+mean5 <- mean(heights$Girls_9, na.rm=TRUE)
+mean6 <- mean(heights$Girls_18, na.rm=TRUE)
+
+#N=78 boys + 96 girls - 6 classes = 168
+var.kids <- (1/168) * (sum((heights$Boys_2 - mean1)^2, na.rm=TRUE) + sum((heights$Boys_9 - mean2)^2, na.rm=TRUE) + sum((heights$Boys_18 - mean3)^2, na.rm=TRUE) + sum((heights$Girls_2 - mean1)^2, na.rm=TRUE) + sum((heights$Girls_9 - mean2)^2, na.rm=TRUE) + sum((heights$Girls_18 - mean3)^2, na.rm=TRUE))
+
+
+kids.melt <- melt(heights, na.rm= TRUE)
+colnames(kids.melt) <- c("Class","Height")
+
+class.kids <- function(kid=90) {
+  mean1 <- mean(heights$Boys_2, na.rm=TRUE)
+  mean2 <- mean(heights$Boys_9, na.rm=TRUE)
+  mean3 <- mean(heights$Boys_18, na.rm=TRUE)
+  mean4 <- mean(heights$Girls_2, na.rm=TRUE)
+  mean5 <- mean(heights$Girls_9, na.rm=TRUE)
+  mean6 <- mean(heights$Girls_18, na.rm=TRUE)
+
+  #N=78 boys + 96 girls - 6 classes = 168
+  var.kids <- (1/168) * (sum((heights$Boys_2 - mean1)^2, na.rm=TRUE) + sum((heights$Boys_9 - mean2)^2, na.rm=TRUE) + sum((heights$Boys_18 - mean3)^2, na.rm=TRUE) + sum((heights$Girls_2 - mean1)^2, na.rm=TRUE) + sum((heights$Girls_9 - mean2)^2, na.rm=TRUE) + sum((heights$Girls_18 - mean3)^2, na.rm=TRUE))
+  
+  class <- data.frame(g1 = dnorm(kid,mean=mean1,sd=sqrt(var.kids)), g2 = dnorm(kid,mean=mean2,sd=sqrt(var.kids)), g3 = dnorm(kid,mean=mean3,sd=sqrt(var.kids)), g4 = dnorm(kid,mean=mean4,sd=sqrt(var.kids)), g5 = dnorm(kid,mean=mean5,sd=sqrt(var.kids)), g6 = dnorm(kid,mean=mean6,sd=sqrt(var.kids)))
+
+  return(as.numeric(which.max(class)))
+}
+
+
+classes.kids <- sapply(1:174, function(x) class.kids(kid=kids.melt$Height[x]))
+
+final.kids <- data.frame(Height=kids.melt$Height, Original=c(rep(1:3,each=26),rep(4:6,each=32)), New=classes.kids)
+
+fails <- sum(ifelse(final.kids$Original == final.kids$New, 0, 1))
+
+#calculate if classified incorrectly, which two were messed up
+```
+
+<p>66/174, or about .3793 children were classified incorrectly, which was to be expected due to the overlapping age groups. In part a, there were very clean divisions between the height of any child at 2, 9, and 18 years of age. However, with the introduction of a second gender, it became trickier to cleanly classify the data on the basis of both gender and age.</p>
+
+<p>c)</p>
+```{r}
+heights <- read.table("children_heights", header=TRUE)
+
+#group1: boys_2  
+#group2: boys_9
+#group3: boys_18
+#group4: Girls_2  
+#group5: Girls_9
+#group6: Girls_18
+
+#put this in a list and write function to dynamically create list of means for given N, same logic for making multiple plots
+mean1 <- mean(heights$Boys_2, na.rm=TRUE)
+mean2 <- mean(heights$Boys_9, na.rm=TRUE)
+mean3 <- mean(heights$Boys_18, na.rm=TRUE)
+mean4 <- mean(heights$Girls_2, na.rm=TRUE)
+mean5 <- mean(heights$Girls_9, na.rm=TRUE)
+mean6 <- mean(heights$Girls_18, na.rm=TRUE)
+
+#N=78 boys + 96 girls - 6 classes = 168
+var.kids <- (1/168) * (sum((heights$Boys_2 - mean1)^2, na.rm=TRUE) + sum((heights$Boys_9 - mean2)^2, na.rm=TRUE) + sum((heights$Boys_18 - mean3)^2, na.rm=TRUE) + sum((heights$Girls_2 - mean1)^2, na.rm=TRUE) + sum((heights$Girls_9 - mean2)^2, na.rm=TRUE) + sum((heights$Girls_18 - mean3)^2, na.rm=TRUE))
+
+
+kids.melt <- melt(heights, na.rm= TRUE)
+colnames(kids.melt) <- c("Class","Height")
+
+class.kids.sd <- function(kid=90) {
+  mean1 <- mean(heights$Boys_2, na.rm=TRUE)
+  mean2 <- mean(heights$Boys_9, na.rm=TRUE)
+  mean3 <- mean(heights$Boys_18, na.rm=TRUE)
+  mean4 <- mean(heights$Girls_2, na.rm=TRUE)
+  mean5 <- mean(heights$Girls_9, na.rm=TRUE)
+  mean6 <- mean(heights$Girls_18, na.rm=TRUE)
+
+  #N=78 boys + 96 girls - 6 classes = 168
+  sd1 <- sd(heights$Boys_2, na.rm=TRUE)
+  sd2 <- sd(heights$Boys_9, na.rm=TRUE)
+  sd3 <- sd(heights$Boys_18, na.rm=TRUE)
+  sd4 <- sd(heights$Girls_2, na.rm=TRUE) 
+  sd5 <- sd(heights$Girls_9, na.rm=TRUE)
+  sd6 <- sd(heights$Girls_18, na.rm=TRUE)
+  
+  class <- data.frame(g1 = dnorm(kid,mean=mean1,sd=sd1), g2 = dnorm(kid,mean=mean2,sd=sd2), g3 = dnorm(kid,mean=mean3,sd=sd3), g4 = dnorm(kid,mean=mean4,sd=sd4), g5 = dnorm(kid,mean=mean5,sd=sd5), g6 = dnorm(kid,mean=mean6,sd=sd6))
+
+  return(as.numeric(which.max(class)))
+}
+
+
+classes.kids.sd <- sapply(1:174, function(x) class.kids.sd(kid=kids.melt$Height[x]))
+
+final.kids.sd <- data.frame(Height=kids.melt$Height, Original=c(rep(1:3,each=26),rep(4:6,each=32)), New=classes.kids.sd)
+
+fails.sd <- sum(ifelse(final.kids.sd$Original == final.kids.sd$New, 0, 1))
+```
+
+<p>Adding the individual sigmas for the groups slightly improved the classifications, with 62/178 (0.3483) being classified correctly.</p>
+
+<p>4 a)</p>
+
+
+
