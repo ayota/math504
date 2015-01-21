@@ -333,5 +333,107 @@ fails.sd <- sum(ifelse(final.kids.sd$Original == final.kids.sd$New, 0, 1))
 
 <p>4 a)</p>
 
+```{r}
+f.x <- function(x,a) {
+  f.x <- x^2 - a
+  return(f.x)
+}
+
+df.x <- function(x) {
+  df.x <- 2*x
+  return(df.x)
+}
+
+mySqrt.a <- function(a=4, tol=.01) {
+  #s.old needs to be larger than the root of a to work
+  #since we don't know a, we can't set a constant or an equation, because a can be anywhere
+  #from near zero to near infinity, the next best thing is s.old = a if a > 1 and
+  #s.old = 1 if a < 1
+  #because we know for sure a > sqrt(a) if a > 1, and if a < 1, a = 1 should be larger than the root
+  #and a must be positive, otherwise the function goes marching off toward negative infinity because the original f.x doesn't get smaller
+  if (a < 0) {
+    return("a must be >= 0")
+  } else {
+    
+  s.old <- ifelse(a > 1, a, 1)
+  while(f.x(s.old, a) > tol) {
+    s.new <- s.old - f.x(s.old,a)/df.x(s.old)
+    s.old <- s.new
+  }
+  return(s.old)
+  }
+}
+
+y <- -.2
+mySqrt.a(a=y, tol=.0001)
+sqrt(x)
+```
+
+<p>b) </p>
+```{r}
+f.x <- function(x,a) {
+  f.x <- x^2 - a
+  return(f.x)
+}
+
+df.x <- function(x) {
+  df.x <- 2*x
+  return(df.x)
+}
+
+mySqrt.b <- function(a=4, tol=.01) {
+  if (a < 0) {
+    return("a must be >= 0")
+  } else {
+    
+  s.old <- ifelse(a > 1, a, 1)
+  while(f.x(s.old, a) > tol) {
+    #can we use square root function in taylor expansion?
+    s.new1 <- s.old - df.x(s.old)/2 + sqrt(df.x(s.old)^2 - 2*2*f.x(s.old,a))/2
+    s.new2 <- s.old - df.x(s.old)/2 - sqrt(df.x(s.old)^2 - 2*2*f.x(s.old,a))/2
+    s.old <- max(s.new1, s.new2, na.rm=TRUE)
+  }
+  return(s.old)
+  }
+}
+
+y <- .04
+debug(mySqrt.b)
+mySqrt.b(a=y, tol=.1)
+
+sqrt(x)
+```
+
+<p>c) </p>
+
+```{r}
+f.x <- function(x,a) {
+  f.x <- x^2 - a
+  return(f.x)
+}
+
+df.x <- function(x) {
+  df.x <- 2*x
+  return(df.x)
+}
+
+mySqrt.c <- function(a=4) {
+  if (a < 0) {
+    return("a must be >= 0")
+  } else {
+  s.old <- ifelse(a > 1, a, 1)
+  root <- uniroot(function(x) x^2 - a, c(0, s.old), tol = 0.0000001)$root
+  return(root)
+  }
+}
+
+y <- .05
+mySqrt.c(a=y)
+sqrt(y)
+```
+
+<p>d) Compare speeds:</p>
+```{r}
 
 
+```
