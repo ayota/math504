@@ -1,0 +1,251 @@
+---
+output:
+  html_document:
+    fig_width: 5
+---
+<p>Elaine Ayo</p>
+<p>Math 504</p>
+<p>Feb. 8, 2015</p>
+
+2. a. M is a symmetric matrix; $v_1, v_2, \dots v_n$ are the eigenvecotrs of M; $\lambda_1, \lambda_2, \dots \lambda_n$ are the eigenvalues. Given a vector w, we can express it as a linear combination of the eigenvectors of M.
+
+$w = c_1 v_1 + c_2 v_2 + \dots + c_n v_n = \Sigma_{i=1}^{n} c_i v_i$ for some scalar c.
+
+$$ \|Mw\| = \|\Sigma_{i=1}^{n} M c_i v_i\| $$
+
+Using the definition of eigenvectors, we get:
+
+$$ \|\Sigma_{i=1}^{n} M c_i v_i\| = \|\Sigma_{i=1}^{n} \lambda_i c_i v_i\| $$
+
+As given, $\lambda_{max} = max_i |\lambda_i|$; so we can deduce:
+
+$$ \|\Sigma_{i=1}^{n} M c_i v_i\| \leq \lambda_{max} \|\Sigma_{i=1}^{n} c_i v_i\| $$
+
+To get $\|Mw\| = \lambda_{max} \|w\|$, w would be the eigenvector with the index corresponding to the largest eigenvalue, let's call it $v_{max}$. This would mean: 
+$$\|M v_{max} \| = \|\Sigma_{i=1}^{n} M v_{max} \|$$
+
+And by the definition of eigenvector:
+
+$$\|\Sigma_{i=1}^{n} M v_{max} \| = \|\Sigma_{i=1}^{n} \lambda_{max} v_{max} \| = \lambda_{max} \|v_{max}\| $$
+
+b. Given everything above:
+
+$$ \|Mw\| = \|\Sigma_{i=1}^{n} M c_i v_i\| $$
+
+Using the definition of eigenvectors, we get:
+
+$$ \| \Sigma_{i=1}^{n} M c_i v_i \| = \| \Sigma_{i=1}^{n} \lambda_i c_i v_i \| $$
+
+As given, $\lambda_{min} = min_i |\lambda_i\|$; so we can deduce:
+
+$$ \| \Sigma_{i=1}^{n} M c_i v_i \| \geq \lambda_{min} \| \Sigma_{i=1}^{n} c_i v_i \| $$
+
+To get $\|Mw\| = \lambda_{min} \|w\|$, w would be the eigenvector with the index corresponding to the smallest eigenvalue, let's call it $v_{min}$. This would mean: 
+$$\|M v_{min}\| = \|\Sigma_{i=1}^{n} M v_{min} \|$$
+
+And by the definition of eigenvector:
+
+$$\|\Sigma_{i=1}^{n} M v_{min} \| = \|\Sigma_{i=1}^{n} \lambda_{min} v_{min} \| = \lambda_{min} \|v_{min}\| $$
+
+c. Let $M$ be a matrix with eigenvalues on the diagonal and zeroes elsewhere; and $M^{-1}$ be a matrix with the reciprocals of the eigenvalues on the diagonal and zeroes elsewhere.
+
+Per Sauer, $cond(M) = \|M\| \cdot \|M^{-1}\|$. And since we want the worst case scenario, we can say $\|M\| = \lambda_{max}$ and $\|M^{-1}\| = \frac{1}{\lambda_{min}}$
+
+$$cond(M) = \|M\| \cdot \|M^{-1}\| = \lambda_{max}(\frac{1}{\lambda_{min}}) = \frac{\lambda_{max}}{\lambda_{min}}$$
+
+$$cond(M^{-1}) = \|M^{-1}\| \cdot \|(M^{-1})^{-1}\| = (\frac{1}{\lambda_{min}})\lambda_{max} = \frac{\lambda_{max}}{\lambda_{min}}$$
+
+d. 
+```{r}
+A <- matrix(c(.1,0,0,.99,.001,0,0,0,-1*10^-20), nrow = 3)
+B <- matrix(c(1/3,1/3,1/3,1/8,5/8,2/8,1/3,1/3,1/3), nrow = 3)
+C <- diag(rep(1,3))
+norm <- function(x) sqrt(sum(x)^2)
+
+#showing the norm of columns are no greater than 1
+sapply(1:3, function(x) norm(A[,x]))
+sapply(1:3, function(x) norm(B[,x]))
+sapply(1:3, function(x) norm(C[,x]))
+
+#check condition numbers, first is 9.91e20, second is Inf
+kappa(A)
+kappa(B)
+kappa(C)
+```
+
+Given $M = A + A^T$, with $A$ being a symmetric matrix, we can show $M$ is symmetric if $M=M^T$ by definition of a symmetric matrix. $M^T = (A + A^T)^T = A^T + A = M$, since the transpose of a sum is the sum of the transposes, and thus M is symmetric.
+
+```{r}
+#make matrix M
+M.a <- A + t(A)
+M.b <- B + t(B)
+M.c <- C + t(C)
+
+#store eigenvectors
+v.a <- eigen(M.a)$vectors
+l.a <- diag(eigen(M.a)$values)
+
+v.b <- eigen(M.b)$vectors
+l.b <- diag(eigen(M.b)$values)
+
+v.c <- eigen(M.c)$vectors
+l.c <- diag(eigen(M.c)$values)
+
+#solve command
+solve.a <- solve(M.a, v.a, tol=10^-100)
+solve.b <- solve(M.b, v.b, tol=10^-100)
+solve.c <- solve(M.c, v.c, tol=10^-100)
+```
+
+Results for A, B, and C:
+
+```{r echo=FALSE}
+solve.a
+solve.b
+solve.c
+```
+
+In theory, we should be able to multiply the results by the eigenvalues and get the eigenvectors back. But as shown below, this only really works for the matrix with the low condition number.
+
+```{r}
+#see if we can get the eigenvalues back
+#high condition number
+(solve.a %*% l.a)  == v.a 
+
+#infinite condition number
+(solve.b %*% l.b) == v.b 
+
+#good condition number
+(solve.c %*% l.c) == v.c 
+```
+
+3. a. Show $Q^TQ = I$, where $I$ is the identity matrix. Given $Q$ is an orthonormal matrix, we know (Q^TQ)_{ij} is the product of row i of $Q^T$ and column j of $Q$. By definition of transpose, row i of $Q^T$ is the transpose of column i of $Q$. So from there we can see:
+
+$$ (Q^TQ)_{ij} = (Q_{\dot i})^T(Q_{\dot j}) = (Q_{\dot i}) \cdot (Q_{\dot j}) $$
+
+And since $Q$ is orthogonal, we know:
+
+$$ (Q_{\dot i}) \cdot (Q_{\dot j}) = 0 if i \neq j $$
+
+$$ (Q_{\dot i}) \cdot (Q_{\dot j}) = 1 if i = j $$
+
+And that's great because the resulting matrix is the identity matrix $I$, with 1's in the diagonal and zeroes elsewhere.
+
+Now to find the optimal $\alpha$ given the model $y ~ \alpha_0 + \Sigma_{j=1}^6 \alpha_j x_j$, we should find the $\alpha$ that minimizes the residuals, or equivalently $min_\alpha \|y - M\alpha\|$. 
+
+But this time let's think of $min_\alpha \|y - M\alpha\|$ as $Proj(y | m^{(1)}, m^{(2)} \dots m^{(k)})$ where $m = m^{(1)}, m^{(2)} \dots m^{(k)}$ and Q is an orthonormal basis and $Q = q^{(1)}, q^{(2)} \dots q^{(k)}$.
+
+So once converting to Q basis, our problem becomes $min_\beta \| y - Q\beta \|$ where $Q\beta = \Sigma_{i=1}^k \beta_i q^{(i)}$ meaning $\beta = Q^T y$. But we have to convert back to the original basis, because sometimes life is unfair.
+
+So to find $\alpha$ based on $\beta$ we need to solve: $M\alpha = Q\beta$. Given $M = QR$ via QR decomposition, we can write:
+
+$$ QR\alpha = Q\beta $$
+
+$$ Q^TQR\alpha = Q^TQ\beta $$
+
+And by previous result, we know $Q^TQ = I$.
+
+$$ R\alpha = \beta $$
+
+$$ \alpha = R^{-1} \beta $$
+
+$$ \alpha = R^{-1}Q^Ty $$
+
+b.
+```{r}
+data <- read.table("economic_data.txt", header=T)
+
+M <- as.matrix(cbind(A0=rep(1,16),data[,2:7]))
+Y <- data$B
+Mqr <- qr(M)
+mats <- list("M" = M, "t(M)M" = t(M) %*% M, "R" = qr.R(Mqr), "Q" = qr.Q(Mqr))
+```
+
+The condition numbers for M and its QR decomposition mirror our discussion in class. M and R has equal condition numbers, whereas t(M)M is much much bigger than orthonormal matrix Q.
+
+```{r}
+#compare condition numbers
+kappas <- lapply(1:4, function(x) kappa(mats[[x]]))
+names(kappas) <- c("M", "t(M)M", "R", "Q")
+kappas
+
+#solve for alphas
+alphas.qr <- solve(mats$R) %*% t(mats$Q) %*% Y
+
+alphas.qr
+```
+
+c. Solving with R's lm() function yields the same alpha values, as expected.
+```{r}
+alphas.lm <- lm(B ~ A1 + A2 + A3 + A4 + A5 + A6, data=data)$coefficients
+alphas.lm
+```
+
+4. a. Given some U, the GS iteration to produce orthogonal matrix Q:
+$$ q^{(1)} = \frac{u^{(1)}}{\|u^{(1)}\|} $$
+
+$$ q^{(2)} = u^{(2)} - (q^{(1)} \cdot u^{(2)})q^{(1)} $$
+
+And then normalize:
+
+$$ q^{(2)} = \frac{q^{(2)}}{ \| q^{(2)} \| } $$
+
+$$ q^{(3)} = u^{(3)} - (q^{(2)} \cdot u^{(3)})q^{(2)} - (q^{(1)} \cdot u^{(3)})q^{(1)} $$
+
+And then normalize:
+
+$$ q^{(3)} = \frac{q^{(3)}}{ \| q^{(3)} \| } $$
+
+And onward, continuing through all vectors in U with the general form:
+
+$$ q^{(k)} = u^{(k)} - \Sigma_{i=1}^{k-1} (q^{(i)} \cdot u^{(k)})q^{(i)} $$
+
+$$ q^{(k)} = \frac{q^{(k)}}{ \| q^{(k)} \| } $$
+
+b. The dot product of two orthogonal vectors is zero, so if the vectors are orthogonal, the dot product of each with the previous vectors should be zero.
+
+For i = 2:
+
+$$ q^{(1)} \cdot q^{(2)} = q^{(1)} \cdot (u^{(2)} - Proj(u^{(2)} | q^{(1)})) = 0 $$
+
+For i = 3:
+
+$$ q^{(1)} \cdot q^{(3)} = q^{(1)} \cdot (u^{(3)} - (q^{(2)} \cdot u^{(3)})q^{(2)} - (q^{(1)} \cdot u^{(3)})q^{(1)}) $$
+$$ q^{(1)} \cdot (u^{(3)} - (q^{(2)} \cdot u^{(3)})q^{(2)}) - q^{(1)} \cdot (q^{(1)} \cdot u^{(3)})q^{(1)} = 0 $$
+
+And so when i = k:
+
+$$ q^{(1)} \cdot q^{(k)} = q^{(1)} \cdot (u^{(k)} - \Sigma_{i=1}^{k-1} (q^{(i)} \cdot u^{(k)})q^{(i)}) $$
+$$ q^{(1)} \cdot (u^{(k)} - (q^{(1)} \cdot u^{(3)})q^{(1)}) - q^{(1)} \cdot (q^{(1)} \cdot \Sigma_{i=2}^{k-1} (q^{(i)} \cdot u^{(k)})q^{(i)} = 0 $$
+
+c.
+```{r}
+U <- matrix(rnorm(25), nrow=5)
+Uqr <- qr(U)
+check <- list("Q" = qr.Q(Uqr), "R" = qr.R(Uqr))
+
+fxn <- list (
+  norm <- function(u) u / sqrt(t(u) %*% u),
+  proj <- function(u, q) (t(q) %*% u) %*% q,
+  rcalc <- function(u, q) t(u) %*% q
+  )
+
+GS.fxn <- function(U = U, fxn = fxn) {
+  dims <- dim(U)
+  Q <- matrix(0, ncol=dims[2], nrow=dims[1])
+  Q[,1] <- fxn[[1]](U[,1])
+  
+  for(i in 2:(dims[1])) {
+    Q[,i] <- U[,i] - rowSums(sapply(1:(i-1), function(x) fxn[[2]](U[,i], Q[,x])))
+    Q[,i] <- fxn[[1]](Q[,i])
+  }
+  
+  R <- sapply(1:dims[2], function(x) fxn[[3]](U[,x],Q))
+  
+  return(list("Q" = Q, "R" = R))
+}
+
+GS.fxn(U, fxn)
+check
+```
+
