@@ -49,7 +49,7 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 ```
 
-2. a. Given the quadratic equation, $f(x) = c + bx + x^TAx$, where A is symmetric. We know for multidimensional system, $\frac{d}{dx}f(x) = \nabla f(x)$ and $\frac{d^2}{d^2x}f(x) = H(f(x))$.
+2. a. Given the quadratic equation, $f(x) = c + bx + x^TAx$, where A is symmetric. We know for multivariate system, $\frac{d}{dx}f(x) = \nabla f(x)$ and $\frac{d^2}{d^2x}f(x) = H(f(x))$.
 
 Writing $f(x)$ as a second-order Taylor series about the point $x^{(i)}$ (since all higher-order derivatives would be zero):
 
@@ -95,7 +95,7 @@ newton <- function(start, err, fxn=fxn.2b, back = TRUE, multid = TRUE, grapher =
     M <- fxn$hess(x.i)
     
     #checking to see if any eigenvalues are negative, and if negative, shift by some lambda. 
-    #This is only needed for multidimensional case, so it can be turned off for 2-d functions
+    #This is only needed for multivariate case, so it can be turned off for 2-d functions
     if(multid) {
     lambda <- min(eigen(M)$values)
     if(lambda < 0) M <- (lambda)*diag(rep(1,nrow(M))) + M 
