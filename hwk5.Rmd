@@ -1,0 +1,199 @@
+---
+output:
+  html_document:
+    fig_width: 8
+---
+Elaine Ayo
+
+Math 504 | Homework 5
+
+February 15, 2015
+
+```{r, echo=FALSE}
+library(ggplot2)
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+```
+
+2. a. Given the quadratic equation, $f(x) = c + bx + x^TAx$, where A is symmetric. We know for multidimensional system, $\frac{d}{dx}f(x) = \nabla f(x)$ and $\frac{d^2}{d^2x}f(x) = H(f(x))$.
+
+Writing $f(x)$ as a second-order Taylor series about the point $x^{(i)}$ (since all higher-order derivatives would be zero):
+
+$$ f(x) = f(x^{(i)}) + \frac{d}{dx}f(x^{(i)})(x-x^{(i)}) + \frac{\frac{d^2}{d^2x}f(x^{(i)})}{2}(x-x^{(i)})^2 $$
+
+We can find a critical point for $f(x)$ by taking the derivative of the Taylor series with respect to x and setting it equal to zero.
+
+$$ \frac{d}{dx}f(x^{(i)}) + \frac{d^2}{d^2x}f(x^{(i)})(x-x^{(i)}) = 0 $$
+
+$$ x = x^{(i)} - \frac{\frac{d}{dx}f(x^{(i)})}{\frac{d^2}{d^2x}f(x^{(i)})} $$
+
+And the plugging in the first and second derivative equivalents:
+
+$$ x = x^{(i)} - \nabla f(x^{(i)})[Hf(x^{(i)})]^{-1} $$
+
+b.
+```{r}
+fxn.2b <- list(
+  f.x = function(params) return(100*(params[2]-params[1]^2)^2 + (1-params[1])^2),
+  grad = function(params) { 
+    d.x <- -400*(params[2]-params[1]^2)*params[1]-2*(1-params[1])
+    d.y <- 200*(params[2]-params[1]^2)
+    return(c(d.x,d.y))
+    },
+  hess = function(params) {
+    d2.x2 <- -400*params[2] + 1200*params[1]^2 + 2
+    d2.xy <- -400*params[1]
+    d2.y2 <- 200
+    return(matrix(c(d2.x2, d2.xy, d2.xy, d2.y2), nrow=2, ncol=2, byrow=TRUE)) 
+    },
+  norm = function(x) return(sqrt(sum(x)^2)) ,
+  graph = function(path) qplot(x=path[,1], y=path[,2], geom="line") + xlab("X") + ylab("Y")
+  )
+
+newton <- function(start, err, fxn=fxn.2b, back = TRUE, multid = TRUE, grapher = TRUE) {
+  out <- list("min" = NULL, "steps" = 0, "stepsize" = NULL, "start" = start, "path" = start, "graph" = NULL)
+  x.i <- out$start
+  
+  while(fxn$norm(fxn$grad(x.i)) > err) {
+    step <- 1
+    M <- fxn$hess(x.i)
+    
+    #checking to see if any eigenvalues are negative, and if negative, shift by some lambda. 
+    #This is only needed for multidimensional case, so it can be turned off for 2-d functions
+    if(multid) {
+    lambda <- min(eigen(M)$values)
+    if(lambda < 0) M <- (lambda)*diag(rep(1,nrow(M))) + M 
+    
+    #calculate direction with multiple dimensions
+    dir <- -solve(M)%*%fxn$grad(x.i)
+    } else {
+    
+    #calculate direction for 2-d function
+    dir <-  -fxn$grad(x.i)/M
+    }
+    
+    #backtracking, can also be turned on and off
+    if(back) while(fxn$f.x(x.i + step*dir) > fxn$f.x(x.i)) step = step/2
+    
+    x.i <- x.i + step*dir
+    out$path <- rbind(out$path, as.numeric(x.i) )
+    out$steps <- out$steps + 1
+    out$stepsize <- rbind(out$stepsize, step)
+  }
+  out$min <- as.numeric(x.i)
+
+  if(grapher) out$graph <- fxn$graph(out$path) #graph path of results
+  
+  return(out)
+}
+
+noback <- newton(c(4,4), err=.005, fxn=fxn.2b, back=FALSE)
+back <- newton(c(4,4), err=.005, fxn=fxn.2b, back=TRUE)
+```
+
+When I turn on backtracking it takes about 23 steps, and without it takes 3 steps to reach the error level of .005. For steepest ascent, it took 66 steps. Backtracking was slightly closer to the known min of (1,1) with (`r back$min`) versus no-backtracking of (`r noback$min`). Steepest ascent overshot the minimum and landed at (0.9558437, 0.9131749), quite a bit farther off than both versions of Newton's method.
+
+Paths are below:
+```{r echo=FALSE, fig.align='center', message=FALSE}
+xy2 <- read.table("banana52b.csv", header=FALSE)
+plots <- list(
+qplot(xy2$V1, xy2$V2, geom="line") + xlab("X") + ylab("Y") + ggtitle("Steepest Ascent"),
+back$graph + ggtitle("Newtown's Method \n (With backtracking)"),
+noback$graph + ggtitle("Newtown's Method \n (No backtracking)"))
+multiplot(plotlist=plots, layout=matrix(c(1,2,3), nrow=1, byrow=TRUE))
+```
+
+From the graphs, it is apparent Newton's method without backtracking takes larger leaps than the other two methods, whereas steepest descent bounces back and forth around the minimum until it finally settles there. Newton's method with backtracking has a much smoother path, and once it begins to descend, it lands the closest to the true minimum of all three methods.
+
+c. Simplifying $g(x) = 10x(x-1)(x+1)(x+2)(x-2)$ yields the following functions for $g(x), g'(x), g''(x)$:
+```{r}
+fxn.2c <- list(
+  f.x = function(x) return(10*x^5 - 50*x^3 + 40*x),
+  grad = function(x) return(50*x^4 - 150*x^2 + 40),
+  hess = function(x) return(200*x^3 - 300*x),
+  norm = function(x) return(sqrt(sum(x)^2)) ,
+  graph = function(path) qplot(x=1:length(path[,1]), y=path[,1], geom="line") + xlab("X") + ylab("Y")
+  )
+```
+
+Then I created a sequence of starting values for x at intervals of .01, and then via an sapply, I ran the newton function written above, which through several parameters can be adjusted to handle $g(x)$. But the function kept breaking when the starting point was 0, because the second derivative of the function, $200x^3 - 300x$ is 0 at x=0, so that makes the Newton's method step function invalid because it requires dividing by 0. So to illustrate the path, I split the vector of start values into either side of 0, and generated the min values that way, with a red line to symbolize $x=0$ on the graph.
+
+```{r}
+#sequence of starting values
+starts <- seq(-3,3,.0001)
+starts2 <- seq(-3,3,.1)
+
+
+min1 <- sapply(1:30000, function(x) newton(start=starts[x], err=.005, fxn=fxn.2c, back=FALSE, multid=FALSE, grapher=FALSE)$min )
+min2 <- sapply(30002:length(starts), function(x) newton(start=starts[x], err=.005, fxn=fxn.2c, back=FALSE, multid=FALSE, grapher=FALSE)$min )
+
+#graph some of this path
+#newton(start=1.1, err=.005, fxn=fxn.2c, back=TRUE, multid=FALSE, grapher=FALSE)$min
+
+f <- Vectorize(function(x) 10*x^5 - 50*x^3 + 40*x)
+
+g.x <- qplot(c(-3,3), fun=f, stat="function", geom="line") + geom_vline(xintercept = 0, color="red") + xlab("X") + ylab("g(x)")
+path <- qplot(c(starts[1:30000], starts[30002:length(starts)]),c(min1,min2), geom="line") + geom_vline(xintercept = 0, color="red") + xlab("Start value for x") + ylab("Critical Points")
+
+multiplot(g.x,path, layout=matrix(c(1,2), nrow=2, byrow=TRUE))
+```
+
+The graph of $g(x)$ shows why the path of Newton's method is so erratic -- it has several slight critical points between [-2,2] that causes Netwon's method to find a different critical point depending on start value, even when those start values are really close together. It especially has trouble around -1 and 1, where there are local minimums and maximums very close to one another (hence the erratic behavious in the graph of critical points around here). The behavior is also erratic around 0, where the function has an even more subtle set of local minimum/maximum. Backtracking also got stuck around the problem areas ...?
+
+3. Given a $d x d$ square matrix M with the extended tableau:
+
+$$ \begin{bmatrix} a_{11} \ a_{12} \ \dots \ a_{1d} \ | \ 1 \ 0 \ \dots \ 0\\ 
+a_{21} \ a_{22} \ \dots \ a_{2d} \ | \ 0 \ 1 \ \dots \ 0
+\\ \vdots 
+\\ a_{d1} \ a_{d2} \ \dots \ a_{dd} \ | \ 0 \ 0 \ \dots \ 1 \end{bmatrix} $$
+
+M can be transformed into the identity matrix by repeating two steps for every column in M:
+
+* Divide each row by the value of M on the diagonal (i.e., the first row by $a_{11}$, the second by $a_{22}$ and so on). 
+
+$$ \begin{bmatrix} \frac{a_{11}}{a_{11}} \ \frac{a_{12}}{a_{11}} \ \dots \ \frac{a_{1d}}{a_{11}} \ | \ \frac{1}{a_{11}} \ 0 \ \dots \ 0\\ 
+a_{21} \ a_{22} \ \dots \ a_{2d} \ | \ 0 \ 1 \ \dots \ 0
+\\ \vdots 
+\\ a_{d1} \ a_{d2} \ \dots \ a_{dd} \ | \ 0 \ 0 \ \dots \ 1 \end{bmatrix} $$
+
+* Subtract the row with the 1 from all other values in its column, after that row is multiplied by the value we're trying to make zero (e.g. R2 - R1 times $a_{21}$, R3 - R1 times $a_{31}$)
+
+$$ \begin{bmatrix} 1 \ (\frac{a_{12}}{a_{11}}) \ \dots \ (\frac{a_{1d}}{a_{11}}) \ | \ (\frac{1}{a_{11}}) \ 0 \ \dots \ 0 \end{bmatrix} $$
+$$ \begin{bmatrix} (a_{21} - a_{21}) \ (a_{22} - a_{21}\frac{a_{12}}{a_{11}}) \ \dots \ (a_{2d} - a_{21}\frac{a_{1d}}{a_{11}}) \ | \ (-a_{21}) \ (1 - a_{21}\frac{a_{12}}{a_{11}}) \ \dots \ (-a_{21}\frac{a_{1d}}{a_{11}}) \end{bmatrix} $$
+$$ \vdots $$ 
+$$ \begin{bmatrix} (a_{d1} - a_{d1}) \ (a_{d2} - a_{d1}\frac{a_{12}}{a_{11}}) \ \dots \ (a_{dd} - a_{d1}\frac{a_{1d}}{a_{11}}) \ | \ (-a_{d1}) \ (-a_{d1}\frac{a_{12}}{a_{11}}) \ \dots \ (1 - a_{d1}\frac{a_{1d}}{a_{11}}) \end{bmatrix} $$
+
