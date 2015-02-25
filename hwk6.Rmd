@@ -1,0 +1,325 @@
+---
+output:
+  html_document:
+    fig_width: 5
+---
+Elaine Ayo
+
+Math 504 | Homework 6
+
+February 22, 2015
+
+```{r echo=FALSE, message=FALSE}
+library(MASS)
+library(ggplot2)
+library(scatterplot3d)
+library(reshape2) 
+library(pryr)
+library(microbenchmark)
+library(ElemStatLearn)
+library(glmnet)
+
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+```
+
+2. Inspection of the graph makes it obvious why this function will be tricky to minimize: There is no absolute minimum, but instead four local minima at the bottom of four identical cones. There is also an absoluted maximum at (0,0), which is also the root. 
+```{r, fig.align='center', message=FALSE, warning=FALSE, error=TRUE}
+
+#list of functions for this problem
+fxn.2 <- list(
+  f.x = function(params) return(-params[1]^2 * params[2]^2 * exp(- params[1]^2/2 - params[2]^2/2) ),
+  grad = function(params) { 
+    d.x1 <- params[1] * (params[1]^2 - 2) * params[2]^2 * exp(- params[1]^2/2 - params[2]^2/2)
+    d.x2 <- params[2] * (params[2]^2 - 2) * params[1]^2 * exp(- params[1]^2/2 - params[2]^2/2)
+    return(c(d.x1,d.x2))
+    },
+  hess = function(params) {
+    d2.x1 <- -(params[1]^4 - 5*params[1]^2 + 2) * params[2]^2 * exp(- params[1]^2/2 - params[2]^2/2)
+    d2.x1x2 <- -params[1] * (params[1]^2 - 2) * params[2] * (params[2]^2 - 2) * exp(- params[1]^2/2 - params[2]^2/2)
+    d2.x2 <- -(params[2]^4 - 5*params[2]^2 + 2) * params[1]^2 * exp(- params[1]^2/2 - params[2]^2/2)
+    return(matrix(c(d2.x1, d2.x1x2, d2.x1x2, d2.x2), nrow=2, ncol=2, byrow=TRUE)) 
+    }
+  )
+
+#3-d plot of the function
+#this will generate a 3-d plot of the function we're looking at
+x.s <- seq(-5,5,.01)
+y.s <- x.s
+
+z <- sapply(1:1001, function(i) sapply(1:1001, function(j) fxn.2$f.x(params=c(x.s[i],y.s[j]))))
+
+base <- persp(x.s, y.s, z, theta = 150, phi = 35, expand = 0.5, col = "blue", ltheta = 120, shade = 0.7, border=NA, xlab = "X", ylab = "Y", zlab = "Z") 
+base + title("f(x) with x = [-5,5]")
+```
+
+Looking at the values of z confirms this, with the max of z being 0 and the min of z being about -.541, or $\frac{-4}{e^2}$, which is obtained when $x_1, x_2 = |\sqrt{2}|$. 
+
+```{r}
+x.0 <- c(.1,.1)
+
+#standard newtown's method
+stan <- -solve(fxn.2$hess(x.0)) %*% fxn.2$grad(x.0)
+
+#modified
+#find eigenvalues
+lambda <- abs(min(eigen(fxn.2$hess(x.0))$values)) + .0001
+
+mod <- -solve(lambda * diag(c(1,1)) + fxn.2$hess(x.0)) %*% fxn.2$grad(x.0)
+```
+
+At $(x_1,x_2) = (.1, .1)$, the value of $f(x_1,x_2) =$ `r fxn.2$f.x(x.0)`, which is much closer to the maximum of 0 rather than the local minima of roughly -.541. The unmodified Netwon's Method would result in a direction of `r stan`, which would shoot us toward the maximum, which would be a critical point but not the one we wanted. Instead, the modified version sends us down into one of the cones toward the minimum. Going toward the minimum at $(\sqrt{2}, \sqrt{2})$ is a good choice because it moves x away from the maximum, as opposed to pursuing other minima which would require the path to go closer to the maximum in one or both directions.
+
+The value of lambda is tricky because it can't simply be the value of the minimum eigenvalue, since that would lead to 0's in the Hessian and make it singular. So, the issue is what value to add to the absolute value of the minimum eigenvalue to make it not singular, but also make the direction vector large enough so we have some room the adjust the step size through backtracking. The smaller the adjustment to $\lambda_{min}$, the larger the resulting direction vector. In this case, and adjustment of .0001 leads to a direction vector of `r mod`. In contrast, an adjustment of 1 would yield a direction vector with values of `r solve( (abs(min(eigen(fxn.2$hess(x.0))$values)) + 1) * diag(c(1,1)) + fxn.2$hess(x.0)) %*% fxn.2$grad(x.0)`. While this would send us in the right direction, each movement would be very small.
+
+3. a.
+```{r}
+data <- read.table("~/Dropbox/numericalmethods/nonlinear.txt", header=TRUE, quote="\"")
+
+#param order: d, r
+fxn.3 <- list(
+  f.x = function(params, data) return( sum((data$y - params[1]*exp(-params[2] * data$x) )^2) ),
+  grad = function(params, data) { 
+    d.d <- sum( -2*(data$y * exp(-params[2] * data$x) - params[1] * exp(-params[2] * data$x) * exp(-params[2] * data$x)))
+    d.r <- sum( 2*(data$y * params[1] * data$x * exp(-params[2] * data$x) - params[1]^2 * data$x * exp(-params[2] * data$x)*exp(-params[2] * data$x)) ) 
+    return(c(d.d,d.r))
+    },
+  hess = function(params, data) {
+    d2.d <- sum( 2 * exp(-2 * params[2] * data$x)
+      )
+    d2.dr <- sum( 2 * data$y * data$x * exp(-params[2] * data$x) - 4 * params[1] * data$x * exp(-2 * params[2] * data$x) )
+    d2.r <- sum( -2 * data$y * params[1] * data$x^2 * exp(-params[2] * data$x) + 4 * params[1]^2 * data$x^2 * exp(-2 * params[2] * data$x))
+    return(matrix(c(d2.d, d2.dr, d2.dr, d2.r), nrow=2, ncol=2, byrow=TRUE)) 
+    },
+  norm = function(x) return(sqrt(sum(x)^2)) ,
+  graph = function(min, data) {
+  qplot(x = data$x, y = data$y) + 
+  stat_function(fun = function(x) min[1]*exp(-min[2] * x), geom="line", lwd = 1, aes(colour="(0,0)")) +
+  xlab("X") + ylab("Y")
+  }
+    )
+
+newton <- function(start, err, fxn=fxn.3, back = TRUE, grapher = FALSE, data=data, adj = .001) {
+  out <- list("min" = NULL, "steps" = 0, "stepsize" = NULL, "start" = start, "path" = start, "graph" = NULL)
+  x.i <- out$start
+  
+  while(fxn$norm(fxn$grad(x.i, data)) > err) {
+    step <- 1
+    M <- fxn$hess(x.i, data)
+    
+    #checking to see if any eigenvalues are negative, and if negative, shift by some lambda. 
+    lambda <- min(eigen(M)$values)
+    if(lambda < 0) M <- (abs(lambda) + adj)*diag(rep(1,nrow(M))) + M 
+    
+    #calculate direction with multiple dimensions
+    dir <- -solve(M)%*%fxn$grad(x.i, data)
+    
+    #backtracking, can be turned on and off
+    if(back) while(fxn$f.x((x.i + step*dir), data) > fxn$f.x(x.i, data)) step = step/2
+    
+    x.i <- x.i + step*dir
+    out$path <- rbind(out$path, as.numeric(x.i) )
+    out$steps <- out$steps + 1
+    out$stepsize <- rbind(out$stepsize, step)
+  }
+  out$min <- as.numeric(x.i)
+
+  if(grapher) out$graph <- fxn$graph(out$min, data) #graph path of results
+  
+  return(out)
+}
+```
+
+* Size of $\lambda$ adjustment relative to number of steps
+The size of the adjustment $\lambda$ seems to have some slight effect on the number of steps when the error level is constant.
+
+```{r, fig.align='center'}
+lams <- seq(.01,5,length.out=100)
+step.lam <- sapply(1:100, function(x) newton(start=c(0,0), err=.001, fxn=fxn.3, back = TRUE, grapher = FALSE, data=data, adj = lams[x])$steps, simplify=TRUE)
+
+qplot(lams, step.lam, geom="line") + xlab("adjustment of min eigenvalue") + ylab("no. of steps")
+```
+
+* For varied starting values from 1 to 100, the ending minimums were the same, but the number of steps to those minimums decreased as the starting value increased.
+```{r, fig.align='center'}
+start <- seq(0,100,length.out=100)
+step.mins <- sapply(1:100, function(x) newton(start=c(start[x],start[x]), err=.001, fxn=fxn.3, back = TRUE, grapher = FALSE, data=data, adj = .1)$steps, simplify=TRUE)
+
+qplot(start, step.mins, geom="line") + xlab("starting value") + ylab("minimum")
+```
+
+* Curve to data points
+
+When graphed against the data points, the curve does appear to follow the data well.
+
+```{r, fig.align='center'}
+mins <- newton(start=c(0,0), err=.001, fxn=fxn.3, back = TRUE, grapher = TRUE, data=data, adj = .1)
+mins$graph
+```
+
+b. The curves are basically identical. The coefficient estimates are also very close. The nls function, however, reached convergence in 7 steps, versus an average of about 13-17 for my function. The convergence tolerance of 2.696e-6 is almost much smaller than the error value I used of .001.
+
+```{r, fig.align='center'}
+nls.fit <- nls(y ~ d * exp(-r * x), data=data, start = list(d = 100, r = 1))
+
+mins$min
+summary(nls.fit)
+
+qplot(x = data$x, y = data$y, color="white") + 
+  stat_function(fun = function(x) mins$min[1]*exp(-mins$min[2] * x), geom="line", lwd = 1.5, aes(colour="Modified N.M.")) +
+  stat_function(fun = function(x) coef(nls.fit)[1]*exp(-coef(nls.fit)[2] * x), geom="line", lwd = .5, aes(colour="NLS")) +
+  scale_colour_manual("Function", values=c("black", "red", "grey"), breaks=c("data", "Modified N.M.", "NLS")) +
+  xlab("X") + ylab("Y")
+```
+
+4. a. Per the reading, I standardized the data in order to remove the intercept from the function to be minimized. As a result, $\alpha_0 = \bar{y}$, which makes sense because the value to minimize the $y_i$'s when x is 0 would be the mean of $y$. To calculate the other coefficients, $||y_i - Mx_i||^2$ is calculated for all predictors except for the target predictor, and then I used the lm function to perform a least squares fit without the intercept. From there, I applied the soft threshold function $sign(t)(|t| - \lambda)$. The function repeats this process for the other seven predictors and then compares the new $\alpha$ 's to the previous set until $\epsilon$ is sufficiently small.
+
+```{r}
+data(prostate)
+prostate <- prostate[,1:9]
+
+#standardize the data
+#scale all the predictors
+data.st <- scale(prostate[,-9])
+data.st <- cbind(data.st, prostate[,9])
+
+#roughly mean of 0
+colMeans(data.st)
+
+#functions
+fxn.4 <- list(
+  norm = function(x) return(sqrt(sum(x)^2)),
+  
+  #soft threshold step
+  thresh =function(z, lambda) {
+  sign <- ifelse(z <= 0, -1, 1)
+  t <- abs(z) - lambda
+  step <- ifelse( t > 0, t, 0)
+  return(sign*step)
+  }
+  )
+
+
+# coordinate descent algorithm
+c.descent <- function(start = rep(0,8), fxn = fxn.4, y.i = data.st[,9], x.i = data.st[,1:8], lambda = .1, eps = 1e-12) {
+
+# start out with the initial parameter values
+alphas <- start
+alpha.old <- rep(1000, 8)
+
+while(fxn$norm(alphas - alpha.old) > eps) {
+  #store old alpha values
+  alpha.old <- alphas
+
+  # iterate through the predictors
+  for(i in 1:dim(x.i)[2]) {
+
+  # calculate the residuals without target predictor
+  r <- y.i - x.i[,-i] %*% alphas[-i]
+
+  # minimize the loss function 
+  alpha.t <- coefficients(lm(r ~ x.i[,i] - 1))[1]
+
+  # soft threshold
+  alphas[i] <- fxn$thresh(alpha.t, lambda)
+}
+}
+
+#because we standardized the predictors, we used formula for step that removed the intercept
+#per the book, this means alpha.0 = mean(y)
+alpha.0 <- mean(data.st[,9])
+
+return(c(alpha.0, alphas))
+}
+```
+
+I checked the function using the lasso function in the glmnet package.
+```{r}
+#lasso
+y <- data.st[,9]
+x <- data.st[,1:8]
+
+grid <- 10^seq(10,-2,length=100)
+fit.lasso <- glmnet(x,y, alpha=1, lambda=grid, thresh=1e-12)
+
+#choosing lambda
+set.seed(693)
+cv.out <- cv.glmnet(x, y, alpha=1)
+bestlam <- cv.out$lambda.min
+
+#fit on entire model
+fit.all <- glmnet(x, y, alpha=1)
+
+#using the best lambda per cross validation
+predict(fit.all, type="coefficients", s=bestlam)
+c.descent(lambda=bestlam)
+
+#and trying out lambda = .01
+predict(fit.all, type="coefficients", s=0)
+c.descent(lambda=0)
+```
+
+The coefficients for both functions are very close, suggesting the coordinate descent function is working properly. 
+
+b. By $\lambda=1$, all coefficients are zero, whereas all values are present only when $\lambda$ is very close to 0.
+```{r}
+s <- seq(0,1,.05)
+coeffs <- lapply(1:21, function(x) c.descent(lambda=s[x]))
+
+val <- matrix(unlist(coeffs), ncol=9, byrow=TRUE)
+val[,1] <- s
+
+colnames(val) <- c("shrinkage",colnames(data.st)[1:8])
+val <- as.data.frame(val)
+head(val)
+tail(val)
+```
+
+
+The coefficients show the same general trend as figure 3.10, except the direction is reversed due to their adjustment $t=\frac{t}{\Sigma_1^p |\hat{\beta}_j|}$. I think most of the differences in the graphs are due to this adjustment, because I get nearly identical values running the glmnet function, which also uses coordinate descent.
+
+```{r, fig.align='center'}
+plot(val$shrinkage, seq(-.3,.7, length.out=21), cex=.5, col="white", ylab="coefficient", xlab="shrinkage factor")
+for(i in 2:9) {
+  lines(val$shrinkage,val[,i], col=i, lwd=2)
+}
+legend(x="topright",
+       c(names(val)[2:9]),
+       lty=1, lwd=5,
+       col=c(2,3,4,5,6,7,8,9), bty='n', cex=.75)
+
+```
