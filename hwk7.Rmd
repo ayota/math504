@@ -121,15 +121,15 @@ d2f.x <- function(x) return(c(0, 0, 2, 6*x))
 
 M[1, 1:4] <- f.x(x=15)
 M[1, 5:8] <- -f.x(x=15)
-M[3, 1:4] <- df.x(x=15)
-M[3, 5:8] <- -df.x(x=15)
-M[5, 1:4] <- d2f.x(x=15)
-M[5, 5:8] <- -d2f.x(x=15)
+M[2, 1:4] <- df.x(x=15)
+M[2, 5:8] <- -df.x(x=15)
+M[3, 1:4] <- d2f.x(x=15)
+M[3, 5:8] <- -d2f.x(x=15)
 
-M[2, 5:8] <- f.x(x=20)
-M[2, 9:12] <- -f.x(x=20)
-M[4, 5:8] <- df.x(x=20)
-M[4, 9:12] <- -df.x(x=20)
+M[4, 5:8] <- f.x(x=20)
+M[4, 9:12] <- -f.x(x=20)
+M[5, 5:8] <- df.x(x=20)
+M[5, 9:12] <- -df.x(x=20)
 M[6, 5:8] <- d2f.x(x=20)
 M[6, 9:12] <- -d2f.x(x=20)
 
@@ -185,15 +185,16 @@ a_0 - a_1 + b_0x - b_1x + c_0x^2 - c_1x^2 + d_0x^3 - d_1x^3 = 0 $$
 B. 
 ```{r}
 M.t <- t(M)
-A <- cbind(M.t, rbind(diag(6),diag(6)) )
 
-#try new A
-A <- cbind(M.t, matrix(rnorm(6*12),ncol=6))
-det(A)
+A <- cbind(M.t, matrix(rnorm(72), nrow=12, ncol=6))
+det(A) #not singular
 
-A.qr <- qr(A)$qr
+A.qr <- qr(A)
+Q <- qr.Q(A.qr)
+Q <- Q[,7:12]
 
-g.x <- function(z = A.qr[,7], data = male$age) {
+
+g.x <- function(z = Q[,1], data = male$age) {
   store <- NULL
   for(i in 1:length(data)){
   if(data[i] < 15) {
@@ -210,13 +211,13 @@ g.x <- function(z = A.qr[,7], data = male$age) {
   return(store)
 }
 
-fit.male <- lapply(7:12, function(x) g.x(z = A.qr[,x], data = male$age))
+fit.male <- lapply(1:6, function(x) g.x(z = Q[,x], data = male$age))
 ```
 
 C. Argue that any cubic spline S(x) with knots ζ1, ζ2 must be of the form S(x) = \Sigma j=1 αjgj (x).
 DO THIS LATER
 
-c. Don't know what's wrong here.
+c. Don't know what's wrong here. I think the g basis has problems.
 ```{r}
 h <- list(
 h.1 = function(x) return(1),
@@ -272,23 +273,23 @@ qplot(female$age, y.female) + geom_line(aes(y=fit.hf, color=3))
 e.
 ```{r}
 y.male <- male$spnbmd
-g.im <- lapply(7:12, function(x) g.x(z = A.qr[,x], data = male$age))
+g.i <- lapply(1:6, function(x) g.x(z = Q[,x], data = male$age))
 W.gm <- cbind(unlist(g.i[[1]]), unlist(g.i[[2]]), unlist(g.i[[3]]), unlist(g.i[[4]]), unlist(g.i[[5]]), unlist(g.i[[6]])) 
 
 alpha.gm <- solve(t(W.gm)%*%W.gm) %*% t(W.gm) %*% y.male 
 
 fit.gm <- W.gm %*% alpha.gm
 
-qplot(male$age, y.male) + geom_line(aes(y=fit.gm, color="red")) + geom_line(aes(y=fit.hm, color="green"))
+qplot(male$age, y.male) + geom_line(aes(y=fit.gm, color="red", size=.3)) + geom_line(aes(y=fit.hm, color="green", size = .1)) + theme(legend.position="none")
 
 
 y.female <- female$spnbmd
-g.i <- lapply(7:12, function(x) g.x(z = A.qr[,x], data = female$age))
+g.i <- lapply(1:6, function(x) g.x(z = Q[,x], data = female$age))
 W.gf <- cbind(unlist(g.i[[1]]), unlist(g.i[[2]]), unlist(g.i[[3]]), unlist(g.i[[4]]), unlist(g.i[[5]]), unlist(g.i[[6]])) 
 
 alpha.gf <- solve(t(W.gf) %*% W.gf) %*% t(W.gf) %*% y.female 
 
 fit.gf <- W.gf %*% alpha.gf
 
-qplot(female$age, y.female) + geom_line(aes(y=fit.gf, color="red")) + geom_line(aes(y=fit.hf, color="green"))
+qplot(female$age, y.female) + geom_line(aes(y=fit.gf, color="blue", size=.1)) + geom_line(aes(y=fit.hf, size=.01)) + theme(legend.position="none")
 ```
