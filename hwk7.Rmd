@@ -216,7 +216,7 @@ fit.male <- lapply(7:12, function(x) g.x(z = A.qr[,x], data = male$age))
 C. Argue that any cubic spline S(x) with knots ζ1, ζ2 must be of the form S(x) = \Sigma j=1 αjgj (x).
 DO THIS LATER
 
-c. 
+c. Don't know what's wrong here.
 ```{r}
 h <- list(
 h.1 = function(x) return(1),
@@ -236,4 +236,59 @@ g.plots <- lapply(1:6, function(x) qplot(male$age,unlist(fit.male[[x]]), geom="l
 plots <- append(h.plots, g.plots)
 
 multiplot(plotlist = plots, layout=matrix(c(1:12), nrow=6, ncol=2))
+```
+
+d. Given $min \Sigma_{i=1}^N (y_i - \Sigma_{j=1}^6 \alpha_j h_j(x_i))^2$; we can express the $h_j(x_i)$ in the form of a matrix W:
+
+$$W = \begin{bmatrix} 
+h_1(x_1) & h_2(x_1) & h_3(x_1) & h_4(x_1) & h_5(x_1) & h_6(x_1) \\
+h_1(x_2) & h_2(x_2) & h_3(x_2) & h_4(x_2) & h_5(x_2) & h_6(x_2) \\
+&&& \vdots &&&\\
+h_1(x_n) & h_2(x_n) & h_3(x_n) & h_4(x_n) & h_5(x_n) & h_6(x_n) \\
+\end{bmatrix}$$
+
+Thus we can rewrite the minimization function as $min_{\alpha \in \mathbb{R}^6} || y - W\alpha ||^2$.
+
+```{r}
+y.male <- male$spnbmd
+h.i <- lapply(1:6, function(y) h[[y]](x=male$age))
+W.male <- cbind(unlist(h.i[[1]]), unlist(h.i[[2]]), unlist(h.i[[3]]), unlist(h.i[[4]]), unlist(h.i[[5]]), unlist(h.i[[6]])) 
+
+alpha.male <- solve(t(W.male)%*%W.male) %*% t(W.male) %*% y.male 
+
+fit.hm <- W.male %*% alpha.male
+qplot(male$age, y.male) + geom_line(aes(y=fit.hm, color="red"))
+
+y.female <- female$spnbmd
+h.i <- lapply(1:6, function(y) h[[y]](x=female$age))
+W.female <- cbind(unlist(h.i[[1]]), unlist(h.i[[2]]), unlist(h.i[[3]]), unlist(h.i[[4]]), unlist(h.i[[5]]), unlist(h.i[[6]])) 
+
+alpha.female <- solve(t(W.female)%*%W.female) %*% t(W.female) %*% y.female 
+
+fit.hf <- W.female %*% alpha.female
+qplot(female$age, y.female) + geom_line(aes(y=fit.hf, color=3))
+```
+
+e.
+```{r}
+y.male <- male$spnbmd
+g.im <- lapply(7:12, function(x) g.x(z = A.qr[,x], data = male$age))
+W.gm <- cbind(unlist(g.i[[1]]), unlist(g.i[[2]]), unlist(g.i[[3]]), unlist(g.i[[4]]), unlist(g.i[[5]]), unlist(g.i[[6]])) 
+
+alpha.gm <- solve(t(W.gm)%*%W.gm) %*% t(W.gm) %*% y.male 
+
+fit.gm <- W.gm %*% alpha.gm
+
+qplot(male$age, y.male) + geom_line(aes(y=fit.gm, color="red")) + geom_line(aes(y=fit.hm, color="green"))
+
+
+y.female <- female$spnbmd
+g.i <- lapply(7:12, function(x) g.x(z = A.qr[,x], data = female$age))
+W.gf <- cbind(unlist(g.i[[1]]), unlist(g.i[[2]]), unlist(g.i[[3]]), unlist(g.i[[4]]), unlist(g.i[[5]]), unlist(g.i[[6]])) 
+
+alpha.gf <- solve(t(W.gf) %*% W.gf) %*% t(W.gf) %*% y.female 
+
+fit.gf <- W.gf %*% alpha.gf
+
+qplot(female$age, y.female) + geom_line(aes(y=fit.gf, color="red")) + geom_line(aes(y=fit.hf, color="green"))
 ```
