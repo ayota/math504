@@ -1,0 +1,184 @@
+---
+output: html_document
+---
+
+Elaine Ayo
+
+Math 504
+
+Homework 8
+
+March 14, 2015
+
+```{r echo=FALSE}
+library(ggplot2)
+library(numDeriv)
+```
+
+2. a. For the central difference, the error is $\frac{-h^2}{6}f'''(c)$. Since $d/d^3x e^x = e^x$, the error is $\frac{h^2}{6}$ at $x = 0$.
+
+As the plot shows, the error decreases until it hits a minimum at 0.000214 and then increases until it hits 1. The reason the error decreases as h becomes really small is the $\epsilon_{mach}$ continues to play a greater and greater role as h gets small and requires subtracting two very close numbers, leading to greater roundoff error in the calculations.
+
+```{r, fig.align='center'}
+h <- seq(1, 10^(-16), length.out=1000)
+
+f.x <- function(x) return(exp(x))
+
+f.diff <- function(h) return( (f.x(h) - f.x(-h)) / 2*h)
+
+err <- abs(f.diff(h) - f.x(0))
+
+qplot(log(h), err, geom="line")
+
+```
+
+b. Let:
+
+$$ \hat{f}(x+h) = f(x+h) + \epsilon_1 $$
+
+$$ \hat{f}(x-h) = f(x-h) + \epsilon_2 $$
+
+so then the error would be:
+
+$$ \left| f''(x) - \Big( \frac{\hat{f}(x+h) - 2f(x) + \hat{f}(x-h)}{h^2} \Big) \right| $$
+
+$$ \left| f''(x) - \Big( \frac{f(x+h) + \epsilon_1 - 2f(x) + f(x-h) + \epsilon_2}{h^2} \Big) \right| $$
+
+Expressing $f(x+h)$ and $f(x-h)$ as Taylor series yields:
+
+$$ f(x+h) = f(x) + f'(x)h + \frac{1}{2}f''(x)h^2 + \frac{1}{3!}f'''(x)h^3 + \frac{1}{4!}f''''(x)h^4 $$
+
+$$ f(x-h) = f(x) + f'(x)(-h) + \frac{1}{2}f''(x)(-h)^2 + \frac{1}{3!}f'''(x)(-h)^3 + \frac{1}{4!}f''''(x)(-h)^4 $$
+
+All the terms with odd powers cancel, and so we're left with:
+
+$$ f(x+h) + f(x-h) = 2f(x) + f''(x)(-h)^2 + \frac{1}{12}f''''(x)(-h)^4 $$
+
+Plugging in and simplifying leaves:
+
+$$ \left| \frac{\frac{1}{12}f^4(x)(-h)^4 + \epsilon_1 + \epsilon_2}{h^2} \right| $$
+
+Assuming:
+
+$$ \left| \frac{\epsilon_1 + \epsilon_2}{h^2} \right| \leq \frac{2\epsilon_{mach}}{h^2} $$
+
+Leaves us with:
+
+$$ E(h) = \frac{f^4(x)}{12} h^2 + \frac{2\epsilon_{mach}}{h^2} $$
+
+Finding the minimum of E'(h) will give the optimal value for h to minimize the error:
+
+$$ 0 = \frac{2f^4(x)}{12} h - \frac{4\epsilon_{mach}}{h^3} $$
+
+Let $M = f^4(x)$ since it is a constant in this context.
+
+$$ h^4 = \frac{24}{M} \epsilon_{mach} $$
+
+$$ h = \Big(\frac{24}{M} \epsilon_{mach}\Big)^{1/4} $$
+
+So since $\epsilon_{mach} = 10^{-16}$, the fourth root would be $10^{-4}$, making the optimal value of h for the second derivative to be $10^{-4}$ times some constant.
+
+3.
+
+```{r}
+Fapprox <- function(a,b,n,method) {
+  if(method == "riemann") {
+    x <- seq(a,b, length.out = n)
+    delta.x <- x[2] - x[1]
+    
+    int <- sum(sapply(1:n, function(i) dnorm(x[i]) * delta.x))
+    
+    return(int)
+  
+  } else if(method == "trapezoid") {
+    x <- seq(a,b, length.out = n)
+    delta.x <- x[2] - x[1]
+    
+    int <- sum(sapply(1:(n-1), function(i) (dnorm(x[i]) + dnorm(x[i+1])) * delta.x/2))
+    
+    return(int)
+    
+  } else if(method == "useR") {
+    
+    integrate(dnorm,a,b)$value
+    
+  } else {
+    return("Please select a valid method")
+  }
+}
+
+N <- c(10,100,1000,10000)
+
+B <- N/100
+
+A <- 0
+
+riemann <- sapply(1:4, function(x) Fapprox(a = A,b = B[x],n = N[x],method="riemann"))
+
+trapezoid <- sapply(1:4, function(x) Fapprox(a = A,b = B[x],n = N[x],method="trapezoid"))
+  
+useR <- sapply(1:4, function(x) Fapprox(a = A,b = B[x],n = N[x],method="useR"))
+
+results <- rbind(riemann, trapezoid, useR)
+
+colnames(results) <- N
+
+results
+```
+
+When b and n were close to each other, the estimates were not accurate because the step sizes were too large. So, in order to ensure the step sizes were sufficiently small, I made b = n/100. Still, for the smaller values of N, the Riemann method was slightly closer to the actual value of .5, but then the Trapezoid method was much closer for larger values of n. The difference in the performance between the Riemann method and the Trapezoid method is the Trapezoid method is better able to adjust for changes in the function, so when the step sizes are small, it is able to more closely follow the function and thus leads to more accurate estiamtes.
+
+4. I used forward difference to calculate the gradient since the central difference took a long time to converge and often got stuck. Overall, it seems to require a few more steps to reach convergence than the version with the analytical solutions, but the minimums are about the same as the previous version.
+
+```{r}
+data <- read.table("~/Dropbox/numericalmethods/nonlinear.txt", header=TRUE, quote="\"")
+
+#param order: d, r
+fxn.4 <- list(
+  f.x = function(params, data) return( sum((data$y - params[1]*exp(-params[2] * data$x) )^2) ),
+  grad = function(params, data, f.x, h) { 
+    d.d <- (f.x(params = c(params[1] + h, params[2]), data) - f.x(params, data)) / h #using forward difference to calculate derivative with respect to d
+    d.r <- (f.x(params = c(params[1], params[2] + h), data) - f.x(params, data)) / h #calc deriv w.r. r
+    return(c(d.d,d.r))
+    },
+  norm = function(x) return(sqrt(sum(x)^2)) ,
+  graph = function(min, data) {
+  qplot(x = data$x, y = data$y) + 
+  stat_function(fun = function(x) min[1]*exp(-min[2] * x), geom="line", lwd = 1, aes(colour="(0,0)")) +
+  xlab("X") + ylab("Y")
+  }
+    )
+
+newton <- function(start, err, fxn=fxn.4, h = 10^-3, back = TRUE, grapher = FALSE, data=data, adj = .001) {
+  out <- list("min" = NULL, "steps" = 0, "stepsize" = NULL, "start" = start, "path" = start, "graph" = NULL)
+  x.i <- out$start
+  
+  while(fxn$norm(fxn$grad(x.i, data, fxn$f.x, h)) > err) {
+    step <- 1
+    M <- hessian(fxn$f.x, x=x.i, data=data) #using numDeriv function to calculate hessian
+    
+    #checking to see if any eigenvalues are negative, and if negative, shift by some lambda. 
+    lambda <- min(eigen(M)$values)
+    if(lambda < 0) M <- (abs(lambda) + adj)*diag(rep(1,nrow(M))) + M 
+    
+    #calculate direction with multiple dimensions
+    dir <- -solve(M)%*%fxn$grad(x.i, data, fxn$f.x, h)
+    
+    #backtracking, can be turned on and off
+    if(back) while(fxn$f.x((x.i + step*dir), data) > fxn$f.x(x.i, data)) step = step/2
+    
+    x.i <- x.i + step*dir
+    out$path <- rbind(out$path, as.numeric(x.i) )
+    out$steps <- out$steps + 1
+    out$stepsize <- rbind(out$stepsize, step)
+  }
+  out$min <- as.numeric(x.i)
+
+  if(grapher) out$graph <- fxn$graph(out$min, data) #graph path of results
+  
+  return(out)
+}
+
+newton(start = c(0,0), err = .001, fxn=fxn.4, h = 10^-4, back = TRUE, grapher = TRUE, data=data, adj = .001)
+
+```
