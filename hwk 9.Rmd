@@ -1,0 +1,234 @@
+---
+output: html_document
+---
+
+Elaine Ayo
+
+Math 504 / Homework 9
+
+March 22, 2015
+
+```{r echo=FALSE, message=FALSE}
+library(MASS)
+library(ggplot2)
+library(scatterplot3d)
+library(reshape2) 
+library(pryr)
+library(microbenchmark)
+library(ElemStatLearn)
+library(glmnet)
+```
+
+2. a. Given: $min_{S(\lambda) \in \mathcal{F}} \Sigma_{i=1}^{N} (Y_i - S(x_i))^2$ with $data ~ (x_i, y_i)$, $x_i \in \mathbb{R}$, and $y_i \in \mathbb{R}$
+
+So we want to construct a basis for $\mathcal{F}$, the spline space. We can do this by expressing $S(x)$ as a linear combination of several functions, $h_i$.
+
+$S(x) = \Sigma_{i=1}^{24} \alpha_i h_i(x)$
+
+with $h_1(x) = 1$, $h_2(x) = x$, $h_3(x) = x^3$, $h_4(x) = x^3$, and $h_{i+4}(x) = [x - \zeta_i]^3_+$ for $i = 1,2,3, ... 20$ for each of the 20 knots.
+
+Since $S(x)$ is a linear combinations of $h_i$, then we can express it as a linear subspace and it forms a basis for splines with knots at each of the particular $\zeta_i$.
+
+The 20 functions $h_{i+4}(x) = [x - \zeta_i]^3_+$ are not polynomials. If they were polynomials then we wouldn't have a basis because the functions would be linearly dependent on other functions. By limiting the functions to only positive values, they form a spline space.
+
+b. Given $min_\alpha \Sigma_{i=1}^N (y_i - \Sigma_{i=1}^{24} \alpha_i h_i(x) )^2 + \lambda \int_{x_{min}}^{x_{max}} (\frac{d^2}{dx^2} \Sigma_{j=1}^{24} \alpha_j h_j(x) )^2 dx$ 
+
+For the first term, let:
+$Y = \begin{bmatrix} Y_1 \\ Y_2 \\ \vdots \\ Y_n \end{bmatrix}$
+
+$A = \begin{bmatrix} h_1(x)^{(1)} & h_2(x)^{(1)} & \cdots & h_{24}(x)^{(1)} \\ h_1(x)^{(2)} & h_2(x)^{(2)} & \cdots & h_{24}(x)^{(2)} \\ \vdots \\ h_1(x)^{(n)} & h_2(x)^{(n)} & \cdots & h_{24}(x)^{(n)} \end{bmatrix}$ 
+
+$\alpha = \begin{bmatrix} \alpha_1 & \cdots & \alpha_{24} \end{bmatrix}$
+
+So we can write the first term as $||y-A\alpha||^2$
+
+For the penalty term, we define a matrix $\Omega$ that is a 24 x 24 matrix, with $\Omega_{jj'} = \int_{a}^{b} h_j''(x)h_{j'}''(x) dx$
+
+So we can write the wiggle penalty as: $\lambda \int_{x_{min}}^{x_{max}} (\frac{d^2}{dx^2} \Sigma_{j=1}^{24} \alpha_j h_j(x) )^2 dx = \lambda \Sigma_{j=1}^{24} \Sigma_{j'=1}^{24} \alpha_j \alpha_{j'} \Omega_{jj'} = \lambda \alpha^T \Omega \alpha$
+
+Resulting in: $min_\alpha ||y-A\alpha||^2 + \lambda \alpha^T \Omega \alpha$
+
+Find a formula for $\alpha$:
+
+$||y-A\alpha||^2 + \lambda \alpha^T \Omega \alpha = y^Ty - 2y^TA\alpha + [\alpha^TA^TA\alpha + \alpha^T\Omega\alpha$
+
+$\nabla (y^Ty - 2y^TA\alpha + [\alpha^TA^TA\alpha + \alpha^T\Omega\alpha) = 0 - 2A^Ty + [(A^TA + \Omega)\alpha + (A^TA + \Omega)^T\alpha]$
+
+Since $A^TA$ and $\Omega$ are both 24 x 24 matrices, we can write:
+
+$2(A^TA + \Omega)\alpha -2A^Ty$
+
+Solving for $\alpha$:
+
+$2(A^TA + \Omega)\alpha -2A^Ty = 0$
+
+$(A^TA + \Omega)\alpha = A^Ty$
+
+$\alpha = (A^TA + \Omega)^{-1}A^Ty$
+
+c.
+#####Knots
+
+I originally spaced them evenly over the data, but that resulted in a singular matrix for the alphas, so I adjusted the end point to prevent so many zeros for the area around the last knot. This resulted in slightly better condition numbers, but they were still too high for R's solve function and I had to adjust the tolerance.
+
+```{r}
+bones <- read.table("~/Dropbox/numericalmethods/BoneMassData.txt", header=TRUE, quote="\"")
+female <- bones[which(bones$gender == 'female'), ]
+
+#function to generate intervals of 20 evenly spaced knots
+#select 20 evenly spaced knots from values of x
+#with going to max, end up with omega that is exactly singular, so I cut it off at 24
+knots <- seq(min(female$age), 24, length.out = 20)
+```
+
+
+#####Function to generate $h_i(x)$'s
+```{r}
+#function to generate h.5 through h.24
+h.i <- function(knot) {
+  knot <- knot
+  function(x) {
+    ifelse(x > knot, (x - knot)^3, 0)
+  }
+}
+
+#list of h functions
+fxn.c <- list(
+h.1 = function(x) 1,
+h.2 = function(x) x,
+h.3 = function(x) x^2,
+h.4 = function(x) x^3
+)
+
+fxn.c <- append(fxn.c,lapply(1:20, function(i) h.i(knots[i])))
+
+#check to make sure fxns were generated properly
+unenclose(fxn.c[[20]])
+```
+
+#####Function to generate A matrix
+```{r}
+#fxn to generate A matrix
+data = sort(female$age)
+
+##should last colum of A be all zeros?
+genA <- function(data = sort(female$age), fxn = fxn.c, knots = knots) {
+  A <- matrix(0, nrow=length(data), ncol=(length(knots) + 4) )
+  
+  for(i in 1:ncol(A)) {
+  A[,i] <- sapply(1:length(data), function(n) fxn[[i]](data[n]))
+  }
+  
+  return(A)
+}
+
+A <- genA(data = sort(female$age), fxn = fxn.c, knots = knots)
+```
+
+
+#####Function to generate $\Omega$
+```{r}
+##function to generate omega
+#omega has several parts:
+### second derivative of all h(x)
+### all hj(x) * hj'(x)
+### integral over all x for above quantity
+
+#first part: let's generate a list of all second derivatives of the h(x)
+#they all have the same form: 6*(x-zeta_i)
+h.d2 <- function(knot) {
+  knot <- knot
+  function(x) {
+    max(6*(x - knot), 0)
+  }
+}
+
+#list of second derivs of h functions
+fxn.d2 <- list(
+h.1 = function(x) 0,
+h.2 = function(x) 0,
+h.3 = function(x) 2,
+h.4 = function(x) 6*x
+)
+
+#list of second derivs
+fxn.d2 <- append(fxn.d2,lapply(1:20, function(i) h.d2(knots[i])))
+
+#step two
+#function to create functions that multiply two h'' together
+multi <- function(j,k){
+  force(j)
+  force(k)
+  function(x){j(x)*k(x)}
+}
+
+#step three: function to generate Omega
+genOmega <- function(data=sort(female$age), fxn = fxn.d2, knots = knots) {
+    omega <- matrix(0, nrow=24, ncol=24)
+    
+    #loop through all the columns of omega
+    for (j in 1:24) {
+      
+      #loop over all functions in the row and get integral for omega
+      vals <- rep(0, 24)
+      for (k in 1:24) {
+      min1 <- ifelse(j > 4, knots[j-4], min(data))
+      min2 <- ifelse(k > 4, knots[k-4], min(data))
+      min <- max(min1, min2)
+      
+      fxn <- multi(fxn.d2[[j]], fxn.d2[[k]])
+      
+      vals[k] <- integrate(Vectorize(fxn, "x"), upper = max(data), lower = min )$value
+      }
+      #replace the appropriate column of omega
+      omega[,j] <- vals
+    }
+  return(omega)
+}
+
+omega <- genOmega(data=sort(female$age), fxn = fxn.d2, knots = knots)
+```
+
+#####Solve for $\alpha_i$
+
+I had to adjust the tolerance to invert the matrix. I tried doing a QR decomposition, but the R matrix still had a condition number way above $10^17$. So this illustrates why it's probably better to use the B-spline basis for large numbers of knots.
+
+```{r}
+##assign Y
+y <- female[order(female$age),4]
+
+#solve for alpha
+
+lambda <- 1000
+alpha1000 <- solve( (t(A) %*% A  + lambda*omega), tol=10^-30) %*% t(A) %*% y
+
+lambda <- 50
+alpha50 <- solve( (t(A) %*% A  + lambda*omega), tol=10^-30) %*% t(A) %*% y
+
+lambda <- 0
+alpha0 <- solve( (t(A) %*% A  + lambda*omega), tol=10^-30) %*% t(A) %*% y
+```
+
+#####Plots
+
+$\lambda$ close to 0 were very erratic, and once it hit 50 to 100 it began to be less volatile. Overall, I think the lower values of $\lambda \geq 50$ yielded better curves up until about 200, then it became too flat to pick up the big shifts in the data. 
+
+```{r, fig.align='center'}
+h.i <- lapply(1:24, function(y) fxn.c[[y]](x=data))
+W.female <- cbind(unlist(h.i[[1]]), unlist(h.i[[2]]), unlist(h.i[[3]]), unlist(h.i[[4]]), unlist(h.i[[5]]), unlist(h.i[[6]]), unlist(h.i[[7]]), unlist(h.i[[8]]), unlist(h.i[[9]]), unlist(h.i[[10]]), unlist(h.i[[11]]), unlist(h.i[[12]]), unlist(h.i[[13]]), unlist(h.i[[14]]), unlist(h.i[[15]]), unlist(h.i[[16]]), unlist(h.i[[17]]), unlist(h.i[[18]]), unlist(h.i[[19]]), unlist(h.i[[20]]), unlist(h.i[[21]]), unlist(h.i[[22]]), unlist(h.i[[23]]), unlist(h.i[[24]])) 
+
+fit1000 <- W.female %*% alpha1000
+fit50 <- W.female %*% alpha50
+fit0 <- W.female %*% alpha0
+
+qplot(x=data, y=y) + geom_line(aes(x=data, y=fit1000, color="lambda 1000")) + geom_line(aes(x=data, y=fit50, color="lambda 100")) + geom_line(aes(x=data, y=predict(smooth.spline(data,y,nknots=20), data)$y, color= "R smooting spline")) + geom_line(aes(x=data, y=fit0, color="lambda 0")) + xlab("age") + ylab("bone mass")
+```
+
+
+
+
+
+
+
+
+

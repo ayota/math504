@@ -59,18 +59,18 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 
 2. 
 ```{r}
-#cleaning data
+#loading data
 LifeExpectancy2003 <- read.csv("~/Dropbox/numericalmethods/LifeExpectancy2003.csv")
 life <- LifeExpectancy2003[1:101,1:2]
 ```
 
 a. Calculating $L(t)$.
 
-So in the example given in the problem, $L(2) = P(lives to be 42) = P(not die between 40-41) \times P(not die between 41-42) = (1 - P(die between 40-41)) \times (1 - P(die between 41-42))$. This is because we know the person has lived to be 40, when they bought the policy, unless this is some sort of elaborate fraud. So to calculate the probability of them not dying, we take the complement of the probability of them dying during each of the given time periods.
+So in the example given in the problem, $L(2) = P(lives to 42) = P(not die 40-41) \times P(not die 41-42) = (1 - P(die 40-41)) \times (1 - P(die 41-42))$. This is because we know the person has lived to be 40, when they bought the policy, unless this is some sort of elaborate fraud. So to calculate the probability of them not dying, we take the complement of the probability of them dying during each of the given time periods.
 
-Function to computer $L(t) \forall t=0,1, 2 ...$. using spreadsheet data. We can start at the 41st row, or the probability of dying between 40-41, because we know the person is already 40 years old at the start of the problem. I cut it off at t=85, because the oldest person to have ever lived was 122, and so even taking into account advances in medical science, anything much more than that seems to be getting a bit silly, especially since the data just assigns a blanket "1" to all ages over 100.
+Function to compute $L(t) \forall t=0,1, 2 ...$. using spreadsheet data. We can start at the 41st row, or the probability of dying between 40-41, because we know the person is already 40 years old at the start of the problem. I cut it off at t=85, since the data just assigns a blanket "1" to all ages over 100.
 
-```{r}
+```{r, fig.align='center'}
 #max age = 125
 t <- c(1:85)
 data <- life
@@ -136,7 +136,7 @@ M[6, 9:12] <- -d2f.x(x=20)
 M
 ```
 
-b. i.So we've created $\mathcal{F} where \mathcal{F} : { z \in \mathbb{R}^12 | Mz = 0}$ and we know $dim(\mathcal{F}) = dim(z \in \mathbb{R}^12 | Mz = 0) = dim(null(M)) = 6$. Given this, any function $f \in \mathcal{F}$ can be expressed as $f(x) = \Sigma_{i=1}^6 \alpha_i h_i(x)$ where $h_i(x)$ is one of the six basis functions $h_1(x) - h_6(x)$. What this essentially does is instead of the familar $\Sigma_{i=1}^M\Sigma_{j=1}^N \alpha_i x_j$, we have a set of functions that change which $alpha$ are used depending on which part of the data we are in.
+b. i.So we've created $\mathcal{F}$ where $\mathcal{F} : { z \in \mathbb{R}^{12} | Mz = 0}$ and we know $dim(\mathcal{F}) = dim(z \in \mathbb{R}^{12} | Mz = 0) = dim(null(M)) = 6$. Given this, any function $f \in \mathcal{F}$ can be expressed as $f(x) = \Sigma_{i=1}^6 \alpha_i h_i(x)$ where $h_i(x)$ is one of the six basis functions $h_1(x) - h_6(x)$. What this essentially does is instead of the familar $\Sigma_{i=1}^M\Sigma_{j=1}^N \alpha_i x_j$, we have a set of functions that change which $\alpha$ are used depending on which part of the data we are in.
 
 ii. A. Given: $z = \begin{bmatrix} & a_0 & b_0 & c_0 & d_0 & a_1 & b_1 & c_1 & d_1 & a_2 & b_2 & c_2 & d_2 & \end{bmatrix}$
  and since:
@@ -182,12 +182,13 @@ x^3 \\
 \begin{bmatrix} a_0 \\ b_0 \\ c_0 \\ d_0 \\ a_1 \\ b_1 \\ c_1 \\ d_1 \\ a_2 \\ b_2 \\ c_2 \\ d_2 \end{bmatrix} =
 a_0 - a_1 + b_0x - b_1x + c_0x^2 - c_1x^2 + d_0x^3 - d_1x^3 = 0 $$
 
-B. 
-```{r}
+B. We can set the z's to correspond with the addition six columns and form a basis for $null(M)$ because the QR decomposition of a non-square matrix A yields Q, which is an orthonormal basis for A. This is what we need to solve for all the z parameters for each of the six continuity functions.
+
+```{r }
 M.t <- t(M)
 
-A <- cbind(M.t, matrix(rnorm(72), nrow=12, ncol=6))
-det(A) #not singular
+#A <- cbind(M.t, matrix(rnorm(72), nrow=12, ncol=6))
+A <- cbind(M.t, rbind(diag(6), diag(6)))
 
 A.qr <- qr(A)
 Q <- qr.Q(A.qr)
@@ -214,11 +215,11 @@ g.x <- function(z = Q[,1], data = male$age) {
 fit.male <- lapply(1:6, function(x) g.x(z = Q[,x], data = male$age))
 ```
 
-C. Argue that any cubic spline S(x) with knots ζ1, ζ2 must be of the form S(x) = \Sigma j=1 αjgj (x).
-DO THIS LATER
+C. Because there are two knots, the resulting cubic spline must be continuous at $f(x), f'(x), f''(x)$ on either side of each knot, $\zeta_1,\zeta_2$. As such, there are six equations the make up M, leading to six $g(x)$ equations that need to form the basis.
 
-c. Don't know what's wrong here. I think the g basis has problems.
-```{r}
+c. $h_3, h_4, h_6$ go in the same direction as their counterparts, while the rest are headed in opposite directions. The general shape of each function for both males and females is fairly consistent.
+
+```{r fig.align='center', fig.width=8.5, fig.height=11, message=FALSE}
 h <- list(
 h.1 = function(x) return(1),
 h.2 = function(x) return(x),
@@ -228,14 +229,19 @@ h.5 = function(x) return(ifelse((x - 15)^3 > 0, (x - 15)^3, 0)),
 h.6 = function(x) return(ifelse((x - 20)^3 > 0, (x - 20)^3, 0))
 )
 
+#males
 h.i <- lapply(1:6, function(y) h[[y]](x=male$age))
-
-h.plots <- lapply(1:6, function(x) qplot(male$age,unlist(h.i[[x]]), geom="line") + ylab(x))
-
-g.plots <- lapply(1:6, function(x) qplot(male$age,unlist(fit.male[[x]]), geom="line") + ylab(x))
-
+h.plots <- lapply(1:6, function(x) qplot(male$age,unlist(h.i[[x]]), geom="line") + ylab(paste("h_",x)))
+g.plots <- lapply(1:6, function(x) qplot(male$age,unlist(fit.male[[x]]), geom="line") + ylab(paste("g_,x")) )
 plots <- append(h.plots, g.plots)
+multiplot(plotlist = plots, layout=matrix(c(1:12), nrow=6, ncol=2))
 
+#females
+fit.female <- lapply(1:6, function(x) g.x(z = Q[,x], data = female$age))
+h.i <- lapply(1:6, function(y) h[[y]](x=female$age))
+h.plots <- lapply(1:6, function(x) qplot(female$age,unlist(h.i[[x]]), geom="line") + ylab(paste("h_",x)))
+g.plots <- lapply(1:6, function(x) qplot(female$age,unlist(fit.female[[x]]), geom="line") + ylab(paste("g_",x)) )
+plots <- append(h.plots, g.plots)
 multiplot(plotlist = plots, layout=matrix(c(1:12), nrow=6, ncol=2))
 ```
 
@@ -250,7 +256,7 @@ h_1(x_n) & h_2(x_n) & h_3(x_n) & h_4(x_n) & h_5(x_n) & h_6(x_n) \\
 
 Thus we can rewrite the minimization function as $min_{\alpha \in \mathbb{R}^6} || y - W\alpha ||^2$.
 
-```{r}
+```{r fig.align='center'}
 y.male <- male$spnbmd
 h.i <- lapply(1:6, function(y) h[[y]](x=male$age))
 W.male <- cbind(unlist(h.i[[1]]), unlist(h.i[[2]]), unlist(h.i[[3]]), unlist(h.i[[4]]), unlist(h.i[[5]]), unlist(h.i[[6]])) 
@@ -258,7 +264,7 @@ W.male <- cbind(unlist(h.i[[1]]), unlist(h.i[[2]]), unlist(h.i[[3]]), unlist(h.i
 alpha.male <- solve(t(W.male)%*%W.male) %*% t(W.male) %*% y.male 
 
 fit.hm <- W.male %*% alpha.male
-qplot(male$age, y.male) + geom_line(aes(y=fit.hm, color="red"))
+qplot(male$age, y.male) + geom_line(aes(y=fit.hm, color="red"))+ theme(legend.position="none")
 
 y.female <- female$spnbmd
 h.i <- lapply(1:6, function(y) h[[y]](x=female$age))
@@ -267,11 +273,12 @@ W.female <- cbind(unlist(h.i[[1]]), unlist(h.i[[2]]), unlist(h.i[[3]]), unlist(h
 alpha.female <- solve(t(W.female)%*%W.female) %*% t(W.female) %*% y.female 
 
 fit.hf <- W.female %*% alpha.female
-qplot(female$age, y.female) + geom_line(aes(y=fit.hf, color=3))
+qplot(female$age, y.female) + geom_line(aes(y=fit.hf, color=3))+ theme(legend.position="none")
 ```
 
-e.
-```{r}
+e. Both fits follow the same path with respect to the data even though they yielded very different $\alpha$ s for the respective bases. 
+
+```{r fig.align='center'}
 y.male <- male$spnbmd
 g.i <- lapply(1:6, function(x) g.x(z = Q[,x], data = male$age))
 W.gm <- cbind(unlist(g.i[[1]]), unlist(g.i[[2]]), unlist(g.i[[3]]), unlist(g.i[[4]]), unlist(g.i[[5]]), unlist(g.i[[6]])) 

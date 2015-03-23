@@ -130,7 +130,7 @@ When b and n were close to each other, the estimates were not accurate because t
 
 4. I used forward difference to calculate the gradient since the central difference took a long time to converge and often got stuck. Overall, it seems to require a few more steps to reach convergence than the version with the analytical solutions, but the minimums are about the same as the previous version.
 
-```{r}
+```{r fig.align='center'}
 data <- read.table("~/Dropbox/numericalmethods/nonlinear.txt", header=TRUE, quote="\"")
 
 #param order: d, r
